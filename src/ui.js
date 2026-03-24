@@ -146,3 +146,105 @@ apiKeyInput.addEventListener('change', () => {
   localStorage.setItem('finnhub_api_key', apiKeyInput.value.trim());
 });
 updateRebalanceButton(); // run once on load
+
+// ── Trade Table Rendering ──────────────────────────────────────────────────
+function fmt(n) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+function renderTrades({ trades, droppedCount, totalValue, deployedValue }) {
+  if (trades.length === 0 && droppedCount === 0) {
+    return '<p style="color:#888;font-size:13px;">Your portfolio is already balanced. No trades needed.</p>';
+  }
+
+  const buys = trades.filter(t => t.action === 'BUY').sort((a, b) => b.estValue - a.estValue);
+  const sells = trades.filter(t => t.action === 'SELL').sort((a, b) => b.estValue - a.estValue);
+
+  const toRows = (list, cls) => list.map(t =>
+    `<tr class="${cls}">
+      <td>${t.ticker}</td>
+      <td>${t.action}</td>
+      <td>${t.shares.toLocaleString()}</td>
+      <td>${fmt(t.estValue)}</td>
+    </tr>`
+  ).join('');
+
+  const totalBuy = buys.reduce((s, t) => s + t.estValue, 0);
+  const totalSell = sells.reduce((s, t) => s + t.estValue, 0);
+
+  const deployedPct = totalValue > 0
+    ? ((deployedValue / totalValue) * 100).toFixed(1)
+    : '0.0';
+
+  const droppedNotice = droppedCount > 0
+    ? `<span>${droppedCount} trade${droppedCount !== 1 ? 's' : ''} under $1 omitted</span>`
+    : '';
+
+  return `
+    <div class="ap-table-wrap" style="max-height:400px;">
+      <table>
+        <thead><tr><th>Ticker</th><th>Action</th><th>Shares</th><th>Est. Value</th></tr></thead>
+        <tbody>
+          ${toRows(buys, 'trade-row-buy')}
+          ${toRows(sells, 'trade-row-sell')}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="3" style="text-align:right;color:#1a6b1a;">Total Buys</td><td style="color:#1a6b1a;">${fmt(totalBuy)}</td></tr>
+          <tr><td colspan="3" style="text-align:right;color:#c0392b;">Total Sells</td><td style="color:#c0392b;">${fmt(totalSell)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="status-line">
+      <span>Portfolio value: ${fmt(totalValue)}</span>
+      <span>${deployedPct}% of portfolio deployed</span>
+      ${droppedNotice}
+    </div>`;
+}
+
+function showError(html) {
+  document.getElementById('trade-content').innerHTML =
+    `<div class="banner error">${html}</div>`;
+}
+
+// ── Rebalance Button ───────────────────────────────────────────────────────
+document.getElementById('rebalance-btn').addEventListener('click', async () => {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const coveragePct = parseInt(document.getElementById('coverage-slider').value, 10);
+  const btn = document.getElementById('rebalance-btn');
+  const tradeContent = document.getElementById('trade-content');
+
+  if (!state.apStocks || !state.holdings || !apiKey) return;
+
+  btn.disabled = true;
+  tradeContent.innerHTML = '<p class="loading">Fetching prices…</p>';
+
+  // Collect all tickers that need prices
+  const apTickers = state.apStocks.map(s => s.ticker);
+  const portfolioTickers = Object.keys(state.holdings);
+  const allTickers = [...new Set([...apTickers, ...portfolioTickers])];
+
+  let prices;
+  try {
+    prices = await FinnhubProvider.getPrices(allTickers, apiKey);
+  } catch (err) {
+    if (err.type === 'invalid_key') {
+      showError('Invalid API key. Check your Finnhub key and try again.');
+      document.getElementById('api-key-error').textContent = 'Invalid key';
+    } else if (err.type === 'rate_limit') {
+      showError('Rate limit exceeded — wait a moment and try again.');
+    } else if (err.type === 'not_found') {
+      showError(`Tickers not found: <strong>${err.tickers.join(', ')}</strong>. Check ticker symbols.`);
+    } else {
+      showError(`Price fetch failed (HTTP ${err.status || 'error'}). Try again.`);
+    }
+    btn.disabled = false;
+    return;
+  }
+
+  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings);
+  tradeContent.innerHTML = renderTrades(result);
+  state.isRebalanced = true;
+  btn.disabled = false;
+  updateRebalanceButton();
+});
+
