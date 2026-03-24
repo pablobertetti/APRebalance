@@ -23,8 +23,9 @@ const AP = [
 
 test('includes enough stocks to meet coverage threshold', () => {
   // A=5, A+B=8 < 8.8, A+B+C=10 >= 8.8 → model = [A, B, C]
-  const { trades } = rebalance(AP, 80, pricesFor(AP), {});
-  // All model stocks have 0 current shares → BUY
+  const holdingsWithValue = { X: 10 }; // X at $100 = totalValue 1000
+  const allPrices = { A: 100, B: 100, C: 100, D: 100, X: 100 };
+  const { trades } = rebalance(AP, 80, allPrices, holdingsWithValue);
   const tickers = trades.map(t => t.ticker);
   assert.ok(tickers.includes('A'), 'A should be in model');
   assert.ok(tickers.includes('B'), 'B should be in model');
@@ -59,7 +60,9 @@ test('normalized weights for selected stocks sum to 100', () => {
 test('coverage threshold measured against total AP weight, not 100', () => {
   // AP weights sum to 11, not 100
   // 100% coverage → include all
-  const { trades } = rebalance(AP, 100, pricesFor(AP), {});
+  const holdingsWithValue = { X: 100 }; // X at $100 = totalValue 10000 (enough for D to get ≥1 share)
+  const allPrices = { A: 100, B: 100, C: 100, D: 100, X: 100 };
+  const { trades } = rebalance(AP, 100, allPrices, holdingsWithValue);
   const tickers = trades.map(t => t.ticker);
   assert.ok(tickers.includes('D'), 'at 100% all stocks should be included');
 });

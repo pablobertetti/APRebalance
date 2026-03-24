@@ -24,10 +24,6 @@ function rebalance(apStocks, coveragePercent, prices, holdings) {
     return sum + shares * (prices[ticker] || 0);
   }, 0);
 
-  // If portfolio is empty, assume a base value to allow model generation
-  if (totalValue === 0 && Object.keys(holdings).length === 0) {
-    totalValue = 10000;
-  }
 
   const modelTickers = new Set(normalized.map(s => s.ticker));
   const rawTrades = [];
