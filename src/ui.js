@@ -94,3 +94,55 @@ slider.addEventListener('input', () => {
   updateSliderGreying();
   clearTrades();
 });
+
+// ── Portfolio Panel ────────────────────────────────────────────────────────
+function updatePortfolioStatus() {
+  const text = document.getElementById('portfolio-input').value;
+  const statusEl = document.getElementById('portfolio-status');
+
+  if (!text.trim()) {
+    statusEl.textContent = '';
+    statusEl.className = 'portfolio-status';
+    state.holdings = null;
+    updateRebalanceButton();
+    return;
+  }
+
+  const { holdings, errors } = parsePortfolio(text);
+
+  if (errors.length > 0) {
+    statusEl.textContent = errors[0]; // show first error
+    statusEl.className = 'portfolio-status';
+    state.holdings = null;
+  } else if (Object.keys(holdings).length === 0) {
+    statusEl.textContent = 'No valid holdings found.';
+    statusEl.className = 'portfolio-status';
+    state.holdings = null;
+  } else {
+    const count = Object.keys(holdings).length;
+    statusEl.textContent = `${count} position${count !== 1 ? 's' : ''} ready.`;
+    statusEl.className = 'portfolio-status ok';
+    state.holdings = holdings;
+  }
+
+  updateRebalanceButton();
+}
+
+document.getElementById('portfolio-input').addEventListener('input', () => {
+  updatePortfolioStatus();
+  clearTrades();
+});
+
+document.getElementById('api-key').addEventListener('input', () => {
+  document.getElementById('api-key-error').textContent = '';
+  updateRebalanceButton();
+  if (state.isRebalanced) clearTrades();
+});
+
+// Persist API key in localStorage
+const apiKeyInput = document.getElementById('api-key');
+apiKeyInput.value = localStorage.getItem('finnhub_api_key') || '';
+apiKeyInput.addEventListener('change', () => {
+  localStorage.setItem('finnhub_api_key', apiKeyInput.value.trim());
+});
+updateRebalanceButton(); // run once on load
