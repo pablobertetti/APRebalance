@@ -67,5 +67,66 @@ test('coverage threshold measured against total AP weight, not 100', () => {
   assert.ok(tickers.includes('D'), 'at 100% all stocks should be included');
 });
 
+test('generates BUY for model stock not currently held', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 50 };
+  const holdings = {};
+  const { trades } = rebalance(ap, 100, prices, holdings);
+  // totalValue = 0 → targetShares = 0 → delta = 0 → no trade
+  assert.strictEqual(trades.length, 0);
+});
+
+test('generates BUY when target > current shares', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100 };
+  // Holdings: B is in portfolio but not model → will be sold
+  // We need totalValue > 0 so use B as value source
+  const holdings = { B: 10 }; // 10 shares × $100 = $1000 total_value
+  const allPrices = { A: 100, B: 100 };
+  const { trades } = rebalance(ap, 100, allPrices, holdings);
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  const sellB = trades.find(t => t.ticker === 'B' && t.action === 'SELL');
+  assert.ok(buyA, 'should BUY A');
+  assert.strictEqual(buyA.shares, 10); // floor(1000 * 100/100 / 100) = 10
+  assert.ok(sellB, 'should SELL B');
+  assert.strictEqual(sellB.shares, 10);
+});
+
+test('generates SELL for model stock when target < current shares', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  // hold 5 of A + 5 of B (B not in model); totalValue=1000; target for A=floor(1000/100)=10
+  const holdings2 = { A: 5, B: 5 };
+  const prices2 = { A: 100, B: 100 };
+  const { trades } = rebalance(ap, 100, prices2, holdings2);
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  const sellB = trades.find(t => t.ticker === 'B' && t.action === 'SELL');
+  assert.ok(buyA, 'should BUY A (5 to 10)');
+  assert.strictEqual(buyA.shares, 5);
+  assert.ok(sellB, 'should SELL all B');
+  assert.strictEqual(sellB.shares, 5);
+});
+
+test('drops sub-$1 trades and reports count', () => {
+  // Use tiny price: $0.001; holds 999 of TINY→ sell all, estValue = 999×0.001 = $0.999 < $1
+  const { trades: t2, droppedCount: d2 } = rebalance(
+    [{ ticker: 'MODEL', weight: 10 }],
+    100,
+    { MODEL: 100, TINY: 0.001 },
+    { TINY: 999 }  // totalValue = 999 * 0.001 = 0.999; targetShares MODEL = floor(0.999/100) = 0
+    // SELL TINY: 999 × 0.001 = 0.999 < $1 → dropped
+  );
+  assert.strictEqual(d2, 1, 'one trade under $1 should be dropped');
+});
+
+test('returns totalValue and deployedValue', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100 };
+  const holdings = { A: 10 }; // totalValue = 1000
+  const { totalValue, deployedValue } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(totalValue, 1000);
+  // targetShares = floor(1000/100) = 10; deployedValue = 10*100 = 1000
+  assert.strictEqual(deployedValue, 1000);
+});
+
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log(`\n${passed} passed`);
