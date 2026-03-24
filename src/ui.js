@@ -33,11 +33,6 @@ function renderAPTable(stocks, coveragePct) {
   for (const { ticker, weight } of stocks) {
     cumulative += weight;
     const cumPct = (cumulative / totalAPWeight * 100).toFixed(1);
-    const excluded = cumulative - weight >= threshold; // stock itself didn't cause threshold to be met
-    // A stock is included if it was the one that pushed cumulative >= threshold, or came before it
-    const includedUpTo = (cumulative - weight) < threshold; // was below threshold before this stock
-    const included = includedUpTo || (cumulative >= threshold && (cumulative - weight) < threshold);
-    // Simpler: included if without this stock we're still below threshold
     const isExcluded = (cumulative - weight) >= threshold;
     rows += `<tr class="${isExcluded ? 'excluded' : ''}">
       <td>${ticker}</td>
