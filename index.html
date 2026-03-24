@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP Rebalancer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; background: #f5f5f5; color: #222; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; }
+    .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
+    textarea { width: 100%; height: 120px; padding: 8px; font-family: monospace; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
+    textarea:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+    button { padding: 7px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #4a90d9; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #357abd; }
+    .btn-rebalance { background: #2d7a2d; color: #fff; font-size: 14px; padding: 9px 24px; }
+    .btn-rebalance:hover:not(:disabled) { background: #236023; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+    .slider-row label { font-size: 13px; color: #555; white-space: nowrap; }
+    input[type=range] { flex: 1; min-width: 120px; }
+    .coverage-value { font-weight: 600; min-width: 30px; }
+    .field-row { margin-top: 12px; }
+    .field-row label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    input[type=password] { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+    input[type=password]:focus { outline: none; border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+    .error-inline { font-size: 12px; color: #c0392b; margin-top: 4px; }
+    .portfolio-status { font-size: 12px; margin-top: 6px; color: #888; }
+    .portfolio-status.ok { color: #2d7a2d; }
+    /* AP Table */
+    .ap-table-wrap { margin-top: 14px; max-height: 260px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f0f0f0; padding: 7px 10px; text-align: left; font-weight: 600; position: sticky; top: 0; border-bottom: 1px solid #ddd; }
+    td { padding: 5px 10px; border-bottom: 1px solid #f0f0f0; }
+    tr.excluded td { color: #bbb; }
+    tr.excluded td:first-child::after { content: ' ✗'; font-size: 11px; }
+    /* Trade Table */
+    .trade-row-buy td { color: #1a6b1a; }
+    .trade-row-sell td { color: #c0392b; }
+    .trade-row-buy td:nth-child(2) { font-weight: 600; }
+    .trade-row-sell td:nth-child(2) { font-weight: 600; }
+    tfoot td { font-weight: 600; border-top: 2px solid #ddd; padding-top: 8px; }
+    /* Status / Error */
+    .banner { padding: 10px 14px; border-radius: 4px; font-size: 13px; margin-top: 0; }
+    .banner.error { background: #fdf0ef; border: 1px solid #f5c6c2; color: #c0392b; }
+    .banner.info { background: #f0f6ff; border: 1px solid #b8d4f5; color: #2c5f9e; }
+    .status-line { display: flex; gap: 24px; font-size: 13px; color: #555; margin-top: 10px; flex-wrap: wrap; }
+    .status-line span { white-space: nowrap; }
+    .loading { color: #888; font-size: 13px; padding: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <h1>AP Rebalancer</h1>
+      <p class="subtitle">Rebalance your portfolio against the Alpha Picks model</p>
+    </div>
+
+    <!-- AP Model Panel -->
+    <div class="card" id="ap-panel">
+      <h2>Alpha Picks Model</h2>
+      <textarea id="ap-input" placeholder="Paste the Alpha Picks portfolio dump here..."></textarea>
+      <div class="row">
+        <button class="btn-primary" id="parse-btn">Parse</button>
+        <span id="parse-status" style="font-size:12px;color:#888;"></span>
+      </div>
+      <div id="ap-table-container"></div>
+      <div class="slider-row" id="slider-row" style="display:none;">
+        <label>Coverage:</label>
+        <input type="range" id="coverage-slider" min="1" max="100" value="80">
+        <span class="coverage-value"><span id="coverage-display">80</span>%</span>
+      </div>
+    </div>
+
+    <!-- My Portfolio Panel -->
+    <div class="card" id="portfolio-panel">
+      <h2>My Portfolio</h2>
+      <textarea id="portfolio-input" placeholder="AAPL, 10&#10;MSFT, 5&#10;GOOGL, 3"></textarea>
+      <div id="portfolio-status" class="portfolio-status"></div>
+      <div class="field-row">
+        <label for="api-key">Finnhub API Key</label>
+        <input type="password" id="api-key" placeholder="your-finnhub-api-key" autocomplete="off">
+        <div id="api-key-error" class="error-inline"></div>
+      </div>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn-rebalance" id="rebalance-btn" disabled>Rebalance</button>
+      </div>
+    </div>
+
+    <!-- Trade Summary Panel -->
+    <div class="card" id="trade-panel">
+      <h2>Trade Summary</h2>
+      <div id="trade-content">
+        <p style="color:#aaa;font-size:13px;">Parse your AP model and portfolio, then click Rebalance.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/ap-parser.js"></script>
+  <script src="src/portfolio-parser.js"></script>
+  <script src="src/rebalancer.js"></script>
+  <script src="src/finnhub-provider.js"></script>
+  <script src="src/ui.js"></script>
+</body>
+</html>
