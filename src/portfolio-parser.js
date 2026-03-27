@@ -7,14 +7,14 @@ function parsePortfolio(text) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    const commaIdx = line.indexOf(',');
-    if (commaIdx === -1) {
-      errors.push(`Line ${i + 1}: expected "TICKER, shares" format`);
+    const parts = line.split(/[,;\t]|\s+/).map(p => p.trim()).filter(p => p.length > 0);
+    if (parts.length < 2) {
+      errors.push(`Line ${i + 1}: expected TICKER SHARES (comma, semicolon, tab, or space)`);
       continue;
     }
 
-    const ticker = line.slice(0, commaIdx).trim().toUpperCase();
-    const sharesStr = line.slice(commaIdx + 1).trim();
+    const ticker = parts[0].toUpperCase();
+    const sharesStr = parts[1];
     const shares = parseFloat(sharesStr);
 
     if (!ticker || isNaN(shares) || shares < 0) {

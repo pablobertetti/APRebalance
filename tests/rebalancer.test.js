@@ -128,5 +128,119 @@ test('returns totalValue and deployedValue', () => {
   assert.strictEqual(deployedValue, 1000);
 });
 
+test('largest remainder assigns extra share to highest-remainder position', () => {
+  // $1001 portfolio, 2 stocks 50/50, price $100 each
+  // exact = 1001 * 0.5 / 100 = 5.005 each → floor=5, remainder=0.005 (tied)
+  // remainingCash = 1001 - 5*100 - 5*100 = $1
+  // $1 < $100 price → no extra shares assigned (neither can afford 1 extra share at $100)
+  // Instead test where extra IS possible:
+  // $201 portfolio, stock A 50% at $50: exact=201*0.5/50=2.01, floor=2, rem=0.01
+  // stock B 50% at $50: exact=2.01, floor=2, rem=0.01
+  // deployedCash = 2*50+2*50=200, remainingCash=$1; price $50 > $1 → no extra
+  // Better: $251 portfolio, A 50% price $50: exact=2.51 floor=2 rem=0.51
+  //                          B 50% price $50: exact=2.51 floor=2 rem=0.51
+  // deployedCash=200, remainingCash=$51; B gets 1 extra (arbitrary order), remainingCash=$1
+  // So total deployed = 2*50 + 3*50 = 250 (vs plain floor = 200)
+  const ap = [{ ticker: 'A', weight: 5 }, { ticker: 'B', weight: 5 }];
+  const prices = { A: 50, B: 50, CASH: 251 };
+  const holdings = { CASH: 1 }; // 1 share × $251 = totalValue $251
+  const allPrices = { A: 50, B: 50, CASH: 251 };
+  const { deployedValue, totalValue } = rebalance(ap, 100, allPrices, holdings);
+  assert.strictEqual(totalValue, 251);
+  // With largest remainder: floor=5 per stock (251*0.5/50=2.51→floor=2), deployed=200 + 1 extra at $50=250
+  // Actually: 251 * 0.5 / 50 = 2.51 each, floor=2 each, deployedFloor=200, remainingCash=51
+  // 1 extra share at $50 → deployed=250; 2nd extra would need another $50 but only $1 left
+  assert.ok(deployedValue >= 250, `deployedValue ${deployedValue} should be ≥ 250 (at least 1 extra share allocated)`);
+  assert.ok(deployedValue <= 251, `deployedValue ${deployedValue} should not exceed totalValue`);
+});
+
+test('largest remainder improves deployment over plain floor', () => {
+  // Stock priced $3, weight 100%, total value $10 → exact=3.33, floor=3, deployed=$9, remaining=$1
+  // Price $3 <= remaining $1? No. So no extra. But if price $1 <= $1: yes.
+  // Use price $1, totalValue $10 → floor=10, remainder=0, remaining=$0 → deployed=$10
+  // Better: price $3, totalValue $10 → floor=3, remaining=$1 < $3 → no extra, deployed=$9
+  // Verify deployedValue = $9 (floor*price) not $10
+  const ap = [{ ticker: 'X', weight: 10 }];
+  const holdings = { CASH: 1 }; // $10 worth at price $10
+  const prices = { X: 3, CASH: 10 };
+  const { deployedValue, totalValue } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(totalValue, 10);
+  assert.strictEqual(deployedValue, 9); // floor(10/3)=3, 3*3=9; remaining $1 < $3 → no extra
+});
+
+test('tolerance skips in-model trade within threshold', () => {
+  // Target 10 shares at $100 = $1000; current 9 shares at $100 = $900
+  // deviation = |9-10|/10 = 10%; with 15% tolerance → skip
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const holdings = { A: 9, CASH: 1 }; // totalValue = 9*100 + 1*100 = 1000
+  const prices = { A: 100, CASH: 100 };
+  const { trades, skippedCount } = rebalance(ap, 100, prices, holdings, 15);
+  const tradeA = trades.find(t => t.ticker === 'A');
+  assert.ok(!tradeA, 'A should be skipped (within tolerance)');
+  assert.strictEqual(skippedCount, 1);
+});
+
+test('tolerance does not skip in-model trade outside threshold', () => {
+  // Target 10 shares at $100; current 5 shares → deviation=50%; tolerance=10% → trade
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const holdings = { A: 5, CASH: 5 }; // totalValue = 5*100+5*100 = 1000
+  const prices = { A: 100, CASH: 100 };
+  const { trades, skippedCount } = rebalance(ap, 100, prices, holdings, 10);
+  const tradeA = trades.find(t => t.ticker === 'A');
+  assert.ok(tradeA, 'A should be traded (outside tolerance)');
+  assert.strictEqual(skippedCount, 0);
+});
+
+test('tolerance never skips out-of-model sell', () => {
+  // OUT is not in model; should always be sold regardless of tolerance
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const holdings = { A: 10, OUT: 1 }; // OUT is out-of-model
+  const prices = { A: 100, OUT: 100 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 99);
+  const sellOut = trades.find(t => t.ticker === 'OUT' && t.action === 'SELL');
+  assert.ok(sellOut, 'OUT should always be sold even at 99% tolerance');
+});
+
+test('subtype is "open" for BUY of stock not currently held', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const holdings = { CASH: 10 }; // A not held; totalValue = 10*100 = 1000
+  const prices = { A: 100, CASH: 100 };
+  const { trades } = rebalance(ap, 100, prices, holdings);
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  assert.ok(buyA, 'should BUY A');
+  assert.strictEqual(buyA.subtype, 'open');
+});
+
+test('subtype is "add" for BUY of stock already held', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const holdings = { A: 5, CASH: 5 }; // A held with 5 shares; totalValue = 1000; target = 10
+  const prices = { A: 100, CASH: 100 };
+  const { trades } = rebalance(ap, 100, prices, holdings);
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  assert.ok(buyA, 'should BUY more A');
+  assert.strictEqual(buyA.subtype, 'add');
+});
+
+test('subtype is "trim" for SELL of in-model stock with too many shares', () => {
+  // ap=[A:7, B:3]; normalized A=70%, B=30%; totalValue=1000 (A:10 × $100)
+  // target A = floor(1000*0.7/100) = 7; hold 10 → delta=-3 → SELL (trim)
+  const ap = [{ ticker: 'A', weight: 7 }, { ticker: 'B', weight: 3 }];
+  const prices = { A: 100, B: 100 };
+  const { trades } = rebalance(ap, 100, prices, { A: 10 });
+  const sellA = trades.find(t => t.ticker === 'A' && t.action === 'SELL');
+  assert.ok(sellA, 'should SELL (trim) A');
+  assert.strictEqual(sellA.subtype, 'trim');
+});
+
+test('subtype is "close" for SELL of out-of-model stock', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const holdings = { A: 5, OUT: 3 }; // OUT not in model → close
+  const prices = { A: 100, OUT: 100 };
+  const { trades } = rebalance(ap, 100, prices, holdings);
+  const sellOut = trades.find(t => t.ticker === 'OUT' && t.action === 'SELL');
+  assert.ok(sellOut, 'should SELL OUT');
+  assert.strictEqual(sellOut.subtype, 'close');
+});
+
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log(`\n${passed} passed`);

@@ -1,4 +1,4 @@
-function rebalance(apStocks, coveragePercent, prices, holdings) {
+function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0) {
   // Step 1: Sort by weight descending, filter to coverage threshold
   const sorted = [...apStocks].sort((a, b) => b.weight - a.weight);
   const totalAPWeight = sorted.reduce((sum, s) => sum + s.weight, 0);
@@ -19,40 +19,71 @@ function rebalance(apStocks, coveragePercent, prices, holdings) {
     normalizedWeight: (s.weight / selectedWeightSum) * 100,
   }));
 
-  // Step 4: Total portfolio value (fixed; includes stocks to be sold)
+  // Step 3: Total portfolio value (fixed; includes stocks to be sold)
   let totalValue = Object.entries(holdings).reduce((sum, [ticker, shares]) => {
     return sum + shares * (prices[ticker] || 0);
   }, 0);
 
 
+  // Step 4: Largest remainder method — compute floor shares and remainders
+  const positions = normalized
+    .map(({ ticker, normalizedWeight }) => {
+      const price = prices[ticker];
+      if (!price) return null;
+      const exact = totalValue * (normalizedWeight / 100) / price;
+      return { ticker, price, floor: Math.floor(exact), remainder: exact % 1 };
+    })
+    .filter(Boolean);
+
+  let remainingCash = totalValue - positions.reduce((s, p) => s + p.floor * p.price, 0);
+
+  const targetSharesMap = new Map(positions.map(p => [p.ticker, p.floor]));
+  const byRemainder = [...positions].sort((a, b) => b.remainder - a.remainder);
+  for (const pos of byRemainder) {
+    if (pos.price <= remainingCash) {
+      targetSharesMap.set(pos.ticker, pos.floor + 1);
+      remainingCash -= pos.price;
+    }
+  }
+
   const modelTickers = new Set(normalized.map(s => s.ticker));
   const rawTrades = [];
+  let skippedCount = 0;
 
-  // Step 5+6: Compute trades for active model stocks
-  for (const { ticker, normalizedWeight } of normalized) {
+  // Step 5: Compute trades for active model stocks
+  for (const { ticker } of positions) {
     const price = prices[ticker];
-    if (!price) continue;
-    const targetValue = totalValue * (normalizedWeight / 100);
-    const targetShares = Math.floor(targetValue / price);
+    const targetShares = targetSharesMap.get(ticker);
     const currentShares = holdings[ticker] || 0;
+
+    if (tolerancePercent > 0 && targetShares > 0) {
+      const deviation = Math.abs(currentShares - targetShares) / targetShares;
+      if (deviation <= tolerancePercent / 100) {
+        skippedCount++;
+        continue;
+      }
+    }
+
     const delta = targetShares - currentShares;
     if (delta !== 0) {
       rawTrades.push({
         ticker,
         action: delta > 0 ? 'BUY' : 'SELL',
+        subtype: delta > 0 ? (currentShares === 0 ? 'open' : 'add') : 'trim',
         shares: Math.abs(delta),
         estValue: Math.abs(delta) * price,
       });
     }
   }
 
-  // Step 6: Out-of-model holdings → SELL ALL
+  // Step 7: Out-of-model holdings → SELL ALL
   for (const [ticker, shares] of Object.entries(holdings)) {
     if (!modelTickers.has(ticker) && shares > 0) {
       const price = prices[ticker] || 0;
       rawTrades.push({
         ticker,
         action: 'SELL',
+        subtype: 'close',
         shares,
         estValue: shares * price,
       });
@@ -68,14 +99,11 @@ function rebalance(apStocks, coveragePercent, prices, holdings) {
   }
 
   // Deployed value: sum of (targetShares × price) for all model stocks
-  const deployedValue = normalized.reduce((sum, { ticker, normalizedWeight }) => {
-    const price = prices[ticker];
-    if (!price) return sum;
-    const targetShares = Math.floor(totalValue * (normalizedWeight / 100) / price);
-    return sum + targetShares * price;
+  const deployedValue = positions.reduce((sum, { ticker, price }) => {
+    return sum + targetSharesMap.get(ticker) * price;
   }, 0);
 
-  return { trades, droppedCount, totalValue, deployedValue };
+  return { trades, droppedCount, skippedCount, totalValue, deployedValue };
 }
 
 if (typeof module !== 'undefined') module.exports = { rebalance };

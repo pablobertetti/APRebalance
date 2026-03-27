@@ -68,5 +68,38 @@ test('isValidPortfolio returns false if all holdings are zero', () => {
   assert.strictEqual(isValidPortfolio('AAPL, 0'), false);
 });
 
+test('parses tab-delimited rows', () => {
+  const { holdings, errors } = parsePortfolio('AAPL\t10\nMSFT\t5');
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(holdings['AAPL'], 10);
+  assert.strictEqual(holdings['MSFT'], 5);
+});
+
+test('parses semicolon-delimited rows', () => {
+  const { holdings, errors } = parsePortfolio('AAPL;10\nMSFT;5');
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(holdings['AAPL'], 10);
+  assert.strictEqual(holdings['MSFT'], 5);
+});
+
+test('parses space-delimited rows', () => {
+  const { holdings, errors } = parsePortfolio('AAPL 10\nMSFT 5');
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(holdings['AAPL'], 10);
+  assert.strictEqual(holdings['MSFT'], 5);
+});
+
+test('parses multiple-space-delimited rows', () => {
+  const { holdings, errors } = parsePortfolio('AAPL  10\nMSFT   5');
+  assert.strictEqual(errors.length, 0);
+  assert.strictEqual(holdings['AAPL'], 10);
+  assert.strictEqual(holdings['MSFT'], 5);
+});
+
+test('still errors on single-token lines with new parser', () => {
+  const { errors } = parsePortfolio('AAPL 10\nbadline\nMSFT 5');
+  assert.strictEqual(errors.length, 1);
+});
+
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log(`\n${passed} passed`);

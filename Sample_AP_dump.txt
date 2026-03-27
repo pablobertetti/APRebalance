@@ -1,0 +1,241 @@
+Company	Symbol	PickedSort by Picked in descending order	Return	Sector	Rating	Holding %	
+Lumentum Holdings Inc.
+Lumentum Holdings Inc.
+LITE	3/16/2026	
+22.22%
+Information Technology	Strong Buy	0.54%	
+Fabrinet
+Fabrinet
+FN	3/2/2026	
+4.59%
+Information Technology	Strong Buy	0.46%	
+General Motors Company
+General Motors Company
+GM	2/17/2026	
+-4.83%
+Consumer Discretionary	Strong Buy	0.47%	
+Dycom Industries, Inc.
+Dycom Industries, Inc.
+DY	2/2/2026	
+-7.39%
+Industrials	Buy	0.52%	
+Newmont Corporation
+Newmont Corporation
+NEM	1/15/2026	
+-12.78%
+Materials	Strong Buy	0.52%	
+Barrick Mining Corporation
+Barrick Mining Corporation
+B	1/2/2026	
+-11.98%
+Materials	Strong Buy	0.53%	
+Millicom International Cellular S.A.
+Millicom International Cellular S.A.
+TIGO	12/15/2025	
+40.13%
+Communication Services	Strong Buy	0.84%	
+Wayfair Inc.
+Wayfair Inc.
+W	12/1/2025	
+-32.18%
+Consumer Discretionary	Hold	0.43%	
+Par Pacific Holdings, Inc.
+Par Pacific Holdings, Inc.
+PARR	11/17/2025	
+36.10%
+Energy	Strong Buy	0.89%	
+Incyte Corporation
+Incyte Corporation
+INCY	11/3/2025	
+-7.73%
+Health Care	Hold	0.66%	
+Micron Technology, Inc.
+Micron Technology, Inc.
+MU	10/15/2025	
+106.71%
+Information Technology	Strong Buy	1.81%	
+TTM Technologies, Inc.
+TTM Technologies, Inc.
+TTMI	10/1/2025	
+81.47%
+Information Technology	Strong Buy	1.50%	
+Coeur Mining, Inc.
+Coeur Mining, Inc.
+CDE	9/15/2025	
+11.36%
+Materials	Strong Buy	1.07%	
+Kinross Gold Corporation
+Kinross Gold Corporation
+KGC	9/2/2025	
+32.02%
+Materials	Strong Buy	1.19%	
+Vistance Networks, Inc.
+Vistance Networks, Inc.
+VISN	8/15/2025	
+18.45%
+Information Technology	Hold	1.21%	
+Sterling Infrastructure, Inc.
+Sterling Infrastructure, Inc.
+STRL	8/1/2025	
+70.52%
+Industrials	Strong Buy	1.50%	
+Willdan Group, Inc.
+Willdan Group, Inc.
+WLDN	7/1/2025	
+24.98%
+Industrials	Hold	1.06%	
+SSR Mining Inc.
+SSR Mining Inc.
+SSRM	6/16/2025	
+91.17%
+Materials	Buy	1.57%	
+United Natural Foods, Inc.
+United Natural Foods, Inc.
+UNFI	5/15/2025	
+38.34%
+Consumer Staples	Strong Buy	1.41%	
+Manulife Financial Corporation
+Manulife Financial Corporation
+MFC	5/1/2025	
+12.00%
+Financials	Strong Buy	1.42%	
+Brinker International, Inc.
+Brinker International, Inc.
+EAT	4/15/2025	
+-1.38%
+Consumer Discretionary	Buy	1.36%	
+EZCORP, Inc.
+EZCORP, Inc.
+EZPW	4/1/2025	
+71.28%
+Financials	Strong Buy	2.01%	
+Arcutis Biotherapeutics, Inc.
+Arcutis Biotherapeutics, Inc.
+ARQT	3/17/2025	
+32.12%
+Health Care	Hold	1.63%	
+Credo Technology Group Holding Ltd
+Credo Technology Group Holding Ltd
+CRDO	2/3/2025	
+46.88%
+Information Technology	Strong Buy	1.95%	
+The Allstate Corporation
+The Allstate Corporation
+ALL	1/2/2025	
+9.61%
+Financials	Hold	1.68%	
+Celestica Inc.
+Celestica Inc.
+CLS	11/15/2024	
+269.24%
+Information Technology	Strong Buy	3.53%	
+Carnival Corporation & plc
+Carnival Corporation & plc
+CCL	11/1/2024	
+16.55%
+Consumer Discretionary	Buy	1.63%	
+Argan, Inc.
+Argan, Inc.
+Winner
+AGX	10/15/2024	
+282.53%
+Industrials	Hold	4.26%	
+Powell Industries, Inc.
+Powell Industries, Inc.
+Winner
+POWL	10/1/2024	
+146.56%
+Industrials	Hold	3.00%	
+Pilgrim's Pride Corporation
+Pilgrim's Pride Corporation
+PPC	9/16/2024	
+-14.14%
+Consumer Staples	Hold	1.53%	
+Synchrony Financial
+Synchrony Financial
+SYF	9/3/2024	
+37.06%
+Financials	Hold	1.97%	
+Covista Inc.
+Covista Inc.
+CVSA	7/15/2024	
+48.33%
+Consumer Discretionary	Buy	2.14%	
+Berkshire Hathaway Inc.
+Berkshire Hathaway Inc.
+BRK.B	7/1/2024	
+17.99%
+Financials	Hold	2.03%	
+SkyWest, Inc.
+SkyWest, Inc.
+SKYW	6/3/2024	
+15.02%
+Industrials	Hold	1.82%	
+Blue Bird Corporation
+Blue Bird Corporation
+BLBD	5/15/2024	
+7.87%
+Industrials	Hold	2.20%	
+Brinker International, Inc.
+Brinker International, Inc.
+EAT	4/1/2024	
+192.06%
+Consumer Discretionary	Buy	3.13%	
+Royal Caribbean Cruises Ltd.
+Royal Caribbean Cruises Ltd.
+Winner
+RCL	3/15/2024	
+113.71%
+Consumer Discretionary	Hold	2.26%	
+Okta, Inc.
+Okta, Inc.
+OKTA	2/15/2024	
+-13.83%
+Information Technology	Hold	1.73%	
+Twilio Inc.
+Twilio Inc.
+TWLO	2/1/2024	
+72.82%
+Information Technology	Buy	2.87%	
+AppLovin Corporation
+AppLovin Corporation
+APP	11/15/2023	
+920.05%
+Information Technology	Buy	5.87%	
+Manulife Financial Corporation
+Manulife Financial Corporation
+MFC	11/1/2023	
+96.19%
+Financials	Strong Buy	2.97%	
+Celestica Inc.
+Celestica Inc.
+CLS	10/16/2023	
+997.99%
+Information Technology	Strong Buy	4.34%	
+T-Mobile US, Inc.
+T-Mobile US, Inc.
+TMUS	9/15/2023	
+47.41%
+Communication Services	Hold	2.39%	
+Sterling Infrastructure, Inc.
+Sterling Infrastructure, Inc.
+STRL	8/1/2023	
+611.10%
+Industrials	Strong Buy	7.42%	
+Uber Technologies, Inc.
+Uber Technologies, Inc.
+UBER	6/1/2023	
+93.71%
+Industrials	Hold	2.64%	
+Powell Industries, Inc.
+Powell Industries, Inc.
+Winner
+POWL	5/15/2023	
+915.61%
+Industrials	Hold	9.13%	
+Corporación América Airports S.A.
+Corporación América Airports S.A.
+Winner
+CAAP	5/1/2023	
+122.63%
+Industrials	Hold	2.89%	

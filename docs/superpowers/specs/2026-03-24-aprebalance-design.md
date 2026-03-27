@@ -23,14 +23,14 @@ Parses the raw text copied from the Alpha Picks webpage into a structured list o
 - A ticker can only appear in one of the active model or the out-of-model sell set — never both. Deduplication guarantees each ticker appears exactly once.
 
 **PortfolioParser**
-Parses the user's current holdings from a plain-text CSV paste.
-- Format: one entry per line, `TICKER, shares` (e.g., `AAPL, 10` or `AAPL,10`)
-- Leading and trailing whitespace is stripped from both the ticker and shares fields; whitespace after the comma is optional
+Parses the user's current holdings from a plain-text paste.
+- Format: one entry per line, `TICKER <delimiter> shares`. Supported delimiters: comma (`,`), semicolon (`;`), tab (`\t`), or one or more spaces. Examples: `AAPL, 10`, `AAPL\t10`, `AAPL 10`, `AAPL;10`.
+- Leading and trailing whitespace is stripped from both fields
 - All tickers are normalized to uppercase on parse
 - Blank lines and leading/trailing whitespace on lines are ignored
 - If the same ticker appears more than once, shares are **summed** across all occurrences
 - Holdings with a final share count of 0 (e.g., `AAPL, 0`) are silently ignored and treated as not held
-- Parsing is triggered **on every keystroke** in the portfolio textarea (live validation). The "successfully parsed" state requires every non-blank line to match the `TICKER, number` format with a positive number.
+- Parsing is triggered **on every keystroke** in the portfolio textarea (live validation). The "successfully parsed" state requires every non-blank line to yield at least two tokens (ticker + shares) with a valid non-negative number.
 
 **PriceProvider (interface)**
 Defines the contract for price lookups: `getPrices(tickers: string[]) → Promise<Map<string, number>>`.
@@ -39,7 +39,11 @@ Defines the contract for price lookups: `getPrices(tickers: string[]) → Promis
 - Swapping providers requires only implementing the same interface — no other code changes.
 
 **Rebalancer**
-Pure function. Takes the AP model, coverage threshold, prices map, and user holdings; returns a filtered trade list (sub-$1 trades already removed). All price validation and halting occurs before this function is called (see Error Handling).
+Pure function. Signature: `rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0)`. Takes the AP model, coverage threshold, prices map, user holdings, and an optional tolerance percentage; returns `{ trades, droppedCount, skippedCount, totalValue, deployedValue }`. All price validation and halting occurs before this function is called (see Error Handling).
+
+Each trade object has the shape `{ ticker, action, subtype, shares, estValue }`:
+- `action`: `'BUY'` or `'SELL'`
+- `subtype`: one of `'open'` (BUY into a stock not currently held), `'add'` (BUY adding to an existing position), `'trim'` (SELL reducing an in-model position to target), or `'close'` (SELL fully exiting an out-of-model stock)
 
 **UI Layer**
 Renders inputs and outputs, wires modules together, persists the API key in `localStorage`.
@@ -128,22 +132,39 @@ Only if all prices are valid does execution proceed to Step 4.
 ### Step 4 — Compute total portfolio value
 `total_value = Σ (shares × current_price)` across **all** user holdings, including stocks that will be sold. This value is computed once and held **fixed** for all subsequent steps.
 
-### Step 5 — Compute target shares
+### Step 5 — Compute target shares (Largest Remainder Method)
 For each stock in the active model:
 ```
-target_value  = total_value × (normalized_weight / 100)
-target_shares = floor(target_value / current_price)
+exact_shares  = total_value × (normalized_weight / 100) / current_price
+floor_shares  = floor(exact_shares)
+remainder     = exact_shares % 1
 ```
-`normalized_weight / 100` converts from percentage units to a fraction before multiplying by `total_value`.
 
-Shares are always rounded **down** (floor) to whole shares to avoid over-buying.
+After computing floor shares for all positions:
+```
+remaining_cash = total_value − Σ(floor_shares × price)
+```
+Sort positions by `remainder` descending. Walk the sorted list: if `price ≤ remaining_cash`, allocate 1 extra share to that position and subtract `price` from `remaining_cash`. This continues until no remaining position can absorb another share.
 
-### Step 6 — Compute and filter trades
-- **In model, currently held**: `delta = target_shares − current_shares` → BUY if positive, SELL if negative
-- **In model, not currently held**: BUY `target_shares`
-- **In portfolio, not in model**: SELL all shares
+```
+target_shares = floor_shares + extra (0 or 1)
+```
 
-After computing all trades, filter out any where `|delta_shares| × current_price < $1`. This filtering happens inside the Rebalancer before the trade list is returned to the UI. Dropped count is included in the return value so the UI can display the omission notice.
+This **largest remainder method** minimizes the idle cash gap between total sells and total buys, distributing rounding residuals optimally across positions.
+
+### Step 6 — Apply tolerance filter (optional)
+If `tolerancePercent > 0`, for each **in-model** stock:
+```
+deviation = |current_shares − target_shares| / target_shares
+```
+If `deviation ≤ tolerancePercent / 100`, skip the trade (increment `skippedCount`). Out-of-model stocks are **never** subject to the tolerance filter — they are always fully sold.
+
+### Step 7 — Compute and filter trades
+- **In model, currently held**: `delta = target_shares − current_shares` → BUY (`subtype: 'add'`) if positive, SELL (`subtype: 'trim'`) if negative
+- **In model, not currently held**: BUY `target_shares` (`subtype: 'open'`)
+- **In portfolio, not in model**: SELL all shares (`subtype: 'close'`)
+
+After computing all trades, filter out any where `|delta_shares| × current_price < $1`. Dropped count is included in the return value.
 
 **No iteration required.** Total portfolio value is fixed upfront; trades are a single-pass delta calculation.
 
@@ -175,6 +196,9 @@ In all error cases the trade summary panel is cleared and replaced with the erro
 - Coverage slider (1–100%, default 80%):
   - Live-updates greying of rows below the current cutoff; does not recompute Cumulative % values
   - Moving the slider clears the trade summary (pre-rebalance state)
+- Tolerance input (number, 0–10%, step 0.5, default 0%):
+  - Shown alongside the coverage slider; hidden until AP model is parsed
+  - Changing the value clears the trade summary (pre-rebalance state)
 
 ### Middle — My Portfolio Panel
 - Textarea: paste current holdings CSV (live-validated on every keystroke)
@@ -183,13 +207,14 @@ In all error cases the trade summary panel is cleared and replaced with the erro
 
 ### Bottom — Trade Summary Panel
 - Table: Ticker | Action | Shares | Est. Value
-- The "Shares" column always shows a positive integer; the "Action" column (BUY/SELL) encodes direction
+- The "Shares" column always shows a positive integer; the "Action" column shows BUY or SELL with a subtype label below it: **Open** (new position), **Add** (adding to existing), **Trim** (reducing in-model position), **Close** (exiting out-of-model stock)
 - BUY rows (green) grouped above SELL rows (red), each group sorted by est. value descending
 - Footer rows: total buy value, total sell value
 - Status line:
   - Total portfolio value (`total_value`)
   - "X% of portfolio deployed" where X = `Σ(target_shares × price) / total_value × 100`, rounded to one decimal
   - "N trade(s) under $1 omitted" if any were dropped (omitted if none)
+  - "N trade(s) within tolerance skipped" if any were skipped via tolerance filter (omitted if none)
 
 ### Styling
 - Plain HTML/CSS/JS, no frameworks
@@ -217,8 +242,20 @@ My Portfolio Paste → PortfolioParser (live, dedup+normalize) → holdings
 ---
 
 ## Out of Scope
-- Fractional shares (output is always rounded down to whole shares)
+- Fractional shares (output is always rounded down to whole shares, with at most 1 extra share per position via largest remainder)
 - Tax lot tracking or cost basis
 - Trade execution or brokerage integration
 - Historical performance tracking
 - Multi-currency support
+
+---
+
+## Test Coverage
+
+Tests live in `tests/` and are run via `bash tests/run-tests.sh`. Each test file uses a minimal `test(name, fn)` harness with `assert` from Node.js.
+
+| File | Tests | Key scenarios |
+|------|-------|---------------|
+| `tests/ap-parser.test.js` | 6 | Winner badge, dedup, uppercase, Sample_AP_dump.txt fixture |
+| `tests/portfolio-parser.test.js` | 17 | CSV, tab, semicolon, space, multi-space delimiters; dedup; zero-share; invalid lines |
+| `tests/rebalancer.test.js` | 17 | Coverage threshold, normalized weights, BUY/SELL generation, sub-$1 drop, largest remainder extra-share allocation, tolerance skip (in-model), tolerance never skips out-of-model, trade subtypes (open/add/trim/close) |

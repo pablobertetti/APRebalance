@@ -95,6 +95,10 @@ slider.addEventListener('input', () => {
   clearTrades();
 });
 
+document.getElementById('tolerance-input').addEventListener('input', () => {
+  clearTrades();
+});
+
 // ── Portfolio Panel ────────────────────────────────────────────────────────
 function updatePortfolioStatus() {
   const text = document.getElementById('portfolio-input').value;
@@ -152,7 +156,7 @@ function fmt(n) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
-function renderTrades({ trades, droppedCount, totalValue, deployedValue }) {
+function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployedValue }) {
   if (trades.length === 0 && droppedCount === 0) {
     return '<p style="color:#888;font-size:13px;">Your portfolio is already balanced. No trades needed.</p>';
   }
@@ -160,10 +164,11 @@ function renderTrades({ trades, droppedCount, totalValue, deployedValue }) {
   const buys = trades.filter(t => t.action === 'BUY').sort((a, b) => b.estValue - a.estValue);
   const sells = trades.filter(t => t.action === 'SELL').sort((a, b) => b.estValue - a.estValue);
 
+  const subtypeLabel = { open: 'Open', add: 'Add', trim: 'Trim', close: 'Close' };
   const toRows = (list, cls) => list.map(t =>
     `<tr class="${cls}">
       <td>${t.ticker}</td>
-      <td>${t.action}</td>
+      <td>${t.action}<br><span style="font-size:11px;font-weight:normal;opacity:0.65;">${subtypeLabel[t.subtype] || ''}</span></td>
       <td>${t.shares.toLocaleString()}</td>
       <td>${fmt(t.estValue)}</td>
     </tr>`
@@ -178,6 +183,9 @@ function renderTrades({ trades, droppedCount, totalValue, deployedValue }) {
 
   const droppedNotice = droppedCount > 0
     ? `<span>${droppedCount} trade${droppedCount !== 1 ? 's' : ''} under $1 omitted</span>`
+    : '';
+  const skippedNotice = skippedCount > 0
+    ? `<span>${skippedCount} trade${skippedCount !== 1 ? 's' : ''} within tolerance skipped</span>`
     : '';
 
   return `
@@ -198,6 +206,7 @@ function renderTrades({ trades, droppedCount, totalValue, deployedValue }) {
       <span>Portfolio value: ${fmt(totalValue)}</span>
       <span>${deployedPct}% of portfolio deployed</span>
       ${droppedNotice}
+      ${skippedNotice}
     </div>`;
 }
 
@@ -241,7 +250,8 @@ document.getElementById('rebalance-btn').addEventListener('click', async () => {
     return;
   }
 
-  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings);
+  const tolerancePct = parseFloat(document.getElementById('tolerance-input').value) || 0;
+  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings, tolerancePct);
   tradeContent.innerHTML = renderTrades(result);
   state.isRebalanced = true;
   btn.disabled = false;
