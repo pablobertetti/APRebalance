@@ -279,5 +279,70 @@ test('cashAdjustment larger than portfolio value clamps to 0 and generates no tr
   assert.strictEqual(trades.length, 0);
 });
 
+// --- Cash-neutral adjustment ---
+
+test('cash-neutral: tolerance-skipped trim deficit is eliminated', () => {
+  // X=21 @$100, OUT=19 @$100 → totalValue=$4000.
+  // Target X=20, target Y=20. X deviation=1/20=5% → skipped at tolerance=5%.
+  // Without fix: BUY Y 20 ($2000) − SELL OUT 19 ($1900) = $100 deficit.
+  // With fix: 1 share removed from Y → BUY Y 19 ($1900) = SELL OUT 19 ($1900).
+  const ap = [{ ticker: 'X', weight: 10 }, { ticker: 'Y', weight: 10 }];
+  const prices = { X: 100, Y: 100, OUT: 100 };
+  const holdings = { X: 21, OUT: 19 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 5);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.ok(totalBuys <= totalSells, `buys ($${totalBuys}) should not exceed sells ($${totalSells})`);
+  const buyY = trades.find(t => t.ticker === 'Y' && t.action === 'BUY');
+  assert.ok(buyY, 'should still have a BUY for Y');
+  assert.strictEqual(buyY.shares, 19);
+});
+
+test('cash-neutral: zero tolerance produces no spurious buy reduction', () => {
+  // Same portfolio. tolerance=0 → X is trimmed (SELL X 1), which funds Y's buy.
+  // deficit = 2000 − (100 + 1900) − 0 = 0 → no reduction. BUY Y stays at 20 shares.
+  const ap = [{ ticker: 'X', weight: 10 }, { ticker: 'Y', weight: 10 }];
+  const prices = { X: 100, Y: 100, OUT: 100 };
+  const holdings = { X: 21, OUT: 19 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 0);
+  const buyY = trades.find(t => t.ticker === 'Y' && t.action === 'BUY');
+  assert.ok(buyY, 'should have a BUY for Y');
+  assert.strictEqual(buyY.shares, 20);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.ok(totalBuys <= totalSells, 'should be cash-neutral at zero tolerance without any reduction');
+});
+
+test('cash-neutral: positive cashAdjustment is not erroneously cancelled', () => {
+  // holdings: A=5 @$100 = $500. cashAdjustment=+$500 → totalValue=$1000.
+  // Target A=10. BUY 5 ($500). No sells.
+  // deficit = 500 − 0 − 500 (cashAdjustment) = 0 → no reduction. BUY intact.
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100 };
+  const holdings = { A: 5 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 0, 500);
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  assert.ok(buyA, 'BUY should not be eliminated when funded by cashAdjustment');
+  assert.strictEqual(buyA.shares, 5);
+  assert.strictEqual(buyA.estValue, 500);
+});
+
+test('cash-neutral: high-price stocks close deficit in one share removal', () => {
+  // X=21 @$500, OUT=19 @$500 → totalValue=$20,000.
+  // Target X=20 (deviation=1/20=5% → skipped), target Y=20.
+  // BUY Y 20 ($10,000) − SELL OUT 19 ($9,500) = $500 deficit.
+  // Remove 1 share of Y ($500): deficit=0. BUY Y 19 ($9,500).
+  const ap = [{ ticker: 'X', weight: 10 }, { ticker: 'Y', weight: 10 }];
+  const prices = { X: 500, Y: 500, OUT: 500 };
+  const holdings = { X: 21, OUT: 19 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 5);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.ok(totalBuys <= totalSells, `buys ($${totalBuys}) should not exceed sells ($${totalSells})`);
+  const buyY = trades.find(t => t.ticker === 'Y' && t.action === 'BUY');
+  assert.ok(buyY, 'should still have a BUY for Y');
+  assert.strictEqual(buyY.shares, 19);
+});
+
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log(`\n${passed} passed`);
