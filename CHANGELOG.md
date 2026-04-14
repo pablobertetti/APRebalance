@@ -2,6 +2,16 @@
 
 ---
 
+## 2026-04-14 — Cash-neutral rebalancing
+
+Rebalance trades now never require injecting unintentional cash into your portfolio:
+
+- When the tolerance filter skips a trim (a position is slightly over its target weight), the rebalancer previously bought other stocks as if that cash had been freed — requiring you to inject the difference from your account's free cash balance.
+- The rebalancer now detects this and reduces buy orders until total buys ≤ total sells (nearest achievable value with whole shares).
+- **`cashAdjustment` is unaffected** — positive adjustments (intentional cash deployment) still work exactly as before.
+
+---
+
 ## 2026-04-14 — Cash adjustment
 
 You can now specify a cash adjustment before rebalancing:
