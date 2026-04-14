@@ -307,6 +307,30 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
     }
   }
 
+  // Cash-neutral adjustment: ensure buys don't exceed sells + cashAdjustment.
+  // Deficit arises when tolerance skips a trim — those unexecuted sells leave
+  // a funding gap for buys. Remove shares from the highest-priced buy trades
+  // one at a time until deficit ≤ 0 (nearest-to-zero with whole shares).
+  const totalBuyValue = rawTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSellValue = rawTrades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  let cashDeficit = Math.round((totalBuyValue - totalSellValue - cashAdjustment) * 100) / 100;
+
+  if (cashDeficit > 0) {
+    const buyTrades = rawTrades
+      .filter(t => t.action === 'BUY')
+      .sort((a, b) => prices[b.ticker] - prices[a.ticker]);
+    for (const trade of buyTrades) {
+      if (cashDeficit <= 0) break;
+      const price = prices[trade.ticker];
+      while (cashDeficit > 0 && trade.shares > 0) {
+        trade.shares -= 1;
+        trade.estValue -= price;
+        targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) - 1);
+        cashDeficit -= price;
+      }
+    }
+  }
+
   // Filter sub-$1 trades
   const trades = [];
   let droppedCount = 0;
