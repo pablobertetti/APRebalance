@@ -375,8 +375,8 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
   }
 
   // Cash-neutral adjustment: minimize net cash flow after whole-share rounding.
-  // When tolerance skips trims, or whole-share constraints leave a mismatch,
-  // remove shares from buy trades so net cash is as close to zero as possible.
+  // When tolerance skips trades, or whole-share constraints leave a mismatch,
+  // adjust buys or trims so net cash is as close to zero as possible.
   const totalBuyValue = rawTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
   const totalSellValue = rawTrades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
   let cashDeficit = Math.round((totalBuyValue - totalSellValue - cashAdjustment) * 100) / 100;
@@ -391,6 +391,17 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
       trade.shares -= sharesToRemove;
       trade.estValue -= sharesToRemove * price;
       targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) - sharesToRemove);
+    }
+  } else if (cashDeficit < 0) {
+    const trimTrades = rawTrades.filter(t => t.action === 'SELL' && t.subtype === 'trim');
+    const removalShares = findNearestRemovalPlan(trimTrades, prices, -cashDeficit);
+    for (const trade of trimTrades) {
+      const sharesToRemove = removalShares.get(trade.ticker) || 0;
+      if (sharesToRemove <= 0) continue;
+      const price = prices[trade.ticker];
+      trade.shares -= sharesToRemove;
+      trade.estValue -= sharesToRemove * price;
+      targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) + sharesToRemove);
     }
   }
 

@@ -58,7 +58,13 @@ If `deficit > 0`:
 1. Collect all BUY raw trades.
 2. Expand them into share-value lots and search for the combination of removable shares whose total value is closest to `deficit`.
 3. Apply that removal plan to the buy trades and update `targetSharesMap` in lockstep.
-4. Trades reduced to 0 shares are naturally removed by the existing sub-$1 filter.
+
+If `deficit < 0`:
+1. Collect all `SELL` trades with subtype `trim`.
+2. Expand them into share-value lots and search for the combination of removable trim shares whose total value is closest to `|deficit|`.
+3. Apply that removal plan to the trim sells and update `targetSharesMap` in lockstep.
+
+Trades reduced to 0 shares are naturally removed by the existing sub-$1 filter.
 
 `targetSharesMap` is updated in lockstep so the `deployedValue` computation (which reads from `targetSharesMap`) remains correct.
 
@@ -88,6 +94,7 @@ Subtracting `cashAdjustment` from the deficit means:
 | cashAdjustment preserved | With `cashAdjustment = X > 0`, net cash flow lands as close as possible to `X` |
 | High-price stocks | Deficit can close in 1–2 share removals when that is already the nearest achievable result |
 | Nearest-match vs greedy | A cheaper-share combination is chosen over a greedy high-price overshoot when it lands closer to zero |
+| Excess sells | When `Σ(sells) > Σ(buys) + |cashAdjustment|`, the algorithm reduces trim sells toward the same nearest-match target |
 | All buys eliminated | If deficit exceeds total buy value, all buys are removed; `deficit = -Σ(sells) ≤ 0` |
 
 ---

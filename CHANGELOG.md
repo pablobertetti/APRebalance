@@ -7,7 +7,7 @@
 Rebalance trades now never require injecting unintentional cash into your portfolio:
 
 - When the tolerance filter skips a trim (a position is slightly over its target weight), the rebalancer previously bought other stocks as if that cash had been freed — requiring you to inject the difference from your account's free cash balance.
-- The rebalancer now chooses the whole-share buy reductions that make net cash flow land as close as possible to the requested `cashAdjustment`.
+- The rebalancer now adjusts whole-share buys or trim sells so net cash flow lands as close as possible to the requested `cashAdjustment`.
 - **`cashAdjustment` is unaffected** — positive adjustments (intentional cash deployment) still work exactly as before.
 
 ---

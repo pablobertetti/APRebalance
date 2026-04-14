@@ -50,7 +50,7 @@ Tests added:
 - malformed trailing characters are rejected
 - `isValidPortfolio(...)` returns `false` for malformed share counts
 
-### 3. Cash-neutral algorithm was only one-sided
+### 3. Cash-neutral algorithm was first changed from greedy to nearest-match, then fixed to be symmetric
 
 Original behavior:
 
@@ -68,7 +68,7 @@ Why that was wrong:
 - But it could still create a large **unintended withdrawal**
 - Real example from the user: buys and sells differed by about `$800` in the withdrawal direction
 
-Fix:
+First fix:
 
 - Replaced the greedy buy-reduction logic with a nearest-match search over removable buy-share lots
 - New goal:
@@ -81,9 +81,16 @@ minimize |sells - buys - cashAdjustment|
 - If not, choose the nearest achievable result
 - On ties, prefer the side that does not require extra capital beyond `cashAdjustment`
 
+Follow-up fix:
+
+- The first version still only handled the `buys > sells` direction
+- It did **not** handle `sells > buys`, which can happen when whole-share trimming overshoots or when the remaining trim set is too large
+- The algorithm now also reduces `SELL / trim` trades toward the same near-zero target when net cash flow is too negative
+
 Implementation:
 
 - Added `findNearestRemovalPlan(...)` to [src/rebalancer.js](/Users/pablo/code/APRebalance/src/rebalancer.js:1)
+- Used it for both buy-side and trim-sell-side adjustments in [src/rebalancer.js](/Users/pablo/code/APRebalance/src/rebalancer.js:1)
 - Mirrored the same logic into [index.html](/Users/pablo/code/APRebalance/index.html:1)
 
 ### 4. Documentation updated to match actual behavior
@@ -129,6 +136,7 @@ Additional benefit:
 
 - portfolio parser malformed-share regression tests in [tests/portfolio-parser.test.js](/Users/pablo/code/APRebalance/tests/portfolio-parser.test.js:1)
 - rebalancer regression test for the old greedy cash-neutral overshoot in [tests/rebalancer.test.js](/Users/pablo/code/APRebalance/tests/rebalancer.test.js:1)
+- rebalancer regression test for the missing `sells > buys` symmetric adjustment in [tests/rebalancer.test.js](/Users/pablo/code/APRebalance/tests/rebalancer.test.js:1)
 - index/src parity test in [tests/index-sync.test.js](/Users/pablo/code/APRebalance/tests/index-sync.test.js:1)
 
 ## Verification Performed

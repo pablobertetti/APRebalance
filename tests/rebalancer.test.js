@@ -371,6 +371,23 @@ test('cash-neutral: chooses nearest-to-zero combination instead of greedy oversh
   assert.ok(!buyB, 'B buy should be fully removed to hit the exact cash-neutral combination');
 });
 
+test('cash-neutral: reduces trim sells when sells exceed buys', () => {
+  // totalValue = 50 * $20 = $1000
+  // Model weights 70/30 => targets: X=35 shares, Y=floor(300/70)=4 shares
+  // Raw trades: SELL X 15 ($300), BUY Y 4 ($280). Net withdrawal = $20.
+  // Reducing the trim by 1 share lands exactly at cash-neutral: SELL X 14 ($280).
+  const ap = [{ ticker: 'X', weight: 7 }, { ticker: 'Y', weight: 3 }];
+  const prices = { X: 20, Y: 70 };
+  const holdings = { X: 50 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 0);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.strictEqual(totalBuys, totalSells, 'trim sell should be reduced to eliminate the withdrawal gap');
+  const sellX = trades.find(t => t.ticker === 'X' && t.action === 'SELL');
+  assert.ok(sellX, 'X trim should remain');
+  assert.strictEqual(sellX.shares, 14);
+});
+
 test('cash-neutral: buy trade drained to zero when deficit exceeds its value', () => {
   // X=15 @$100 (tolerance-skipped trim at 50% tol, deviation=5/10=50%).
   // OUT=5 @$100 → SELL OUT 5 ($500).

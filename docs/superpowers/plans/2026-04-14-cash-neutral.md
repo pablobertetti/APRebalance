@@ -4,7 +4,7 @@
 
 **Goal:** Ensure rebalance trades land as close as possible to the requested net cash flow (`0` by default, `cashAdjustment` when provided).
 
-**Architecture:** Single post-processing block inserted in `rebalancer.js` after all raw trades are generated. Computes deficit = buys − sells − cashAdjustment; if positive, finds the combination of removable buy shares that lands closest to zero net cash flow. `targetSharesMap` is kept in sync so `deployedValue` stays correct.
+**Architecture:** Single post-processing block inserted in `rebalancer.js` after all raw trades are generated. Computes deficit = buys − sells − cashAdjustment; if positive, finds the combination of removable buy shares that lands closest to zero net cash flow; if negative, it does the symmetric adjustment on `SELL / trim` trades. `targetSharesMap` is kept in sync so `deployedValue` stays correct.
 
 **Tech Stack:** Vanilla JS. Node.js for tests only (no npm, no build step).
 
@@ -225,7 +225,7 @@ In `CHANGELOG.md`, insert the following section at the top, after the `# Changel
 Rebalance trades now never require injecting unintentional cash into your portfolio:
 
 - When the tolerance filter skips a trim (a position is slightly over its target weight), the rebalancer previously bought other stocks as if that cash had been freed — requiring you to inject the difference from your account's free cash balance.
-- The rebalancer now chooses the whole-share buy reductions that make net cash flow land as close as possible to the requested `cashAdjustment`.
+- The rebalancer now adjusts whole-share buys or trim sells so net cash flow lands as close as possible to the requested `cashAdjustment`.
 - **`cashAdjustment` is unaffected** — positive adjustments (intentional cash deployment) still work exactly as before.
 
 ---
