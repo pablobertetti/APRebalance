@@ -2,6 +2,18 @@
 
 ---
 
+## 2026-04-14 — Guided UI refresh
+
+The app now presents the rebalance flow as a clearer 3-step workflow with stronger information hierarchy:
+
+- New guided layout: **Model Intake**, **Portfolio + Settings**, and **Trade Plan**
+- Stronger visual system with improved spacing, typography, status states, and responsive layout
+- Model parsing now surfaces a compact summary of parsed names and current coverage scope
+- Portfolio validation and API-key handling are shown in clearer status panels instead of raw inline text
+- Trade output now includes summary metrics, stronger loading/empty states, action badges, and clearer notices for skipped or dropped trades
+
+---
+
 ## 2026-04-14 — Cash-neutral rebalancing
 
 Rebalance trades now aim for the best whole-share balance between model replication and cash neutrality:

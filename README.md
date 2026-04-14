@@ -16,6 +16,12 @@ The app then:
 - computes target whole-share positions
 - produces a BUY/SELL trade list that tries to stay close to the model while keeping net cash flow as close as possible to your requested cash adjustment
 
+The current UI is organized as a guided 3-step workflow:
+
+1. **Model Intake** — paste and parse the Alpha Picks dump
+2. **Portfolio + Settings** — validate holdings, provide your Finnhub API key, and set coverage/tolerance/cash controls
+3. **Trade Plan** — review the resulting trades, net cash effect, and deployment summary
+
 ## What It Does
 
 The app is designed for the practical problem of matching a model portfolio with whole shares and live prices.
@@ -25,6 +31,13 @@ Key controls:
 - **Coverage %**: use only the top AP names up to a cumulative-weight threshold
 - **Tolerance %**: skip trades for positions that are already close enough to target
 - **Cash adjustment ($)**: intentionally deploy extra cash or model a withdrawal
+
+The UI also surfaces:
+
+- step status badges (`Waiting`, `Ready`, `Needs Fix`, `Calculated`)
+- a compact model summary after parsing
+- a trade summary with portfolio value, total buys, total sells, net cash effect, and deployed percentage
+- clearer empty, loading, error, and already-balanced states
 
 Trade output distinguishes:
 
@@ -60,7 +73,7 @@ There is no build step, no npm setup, and no server. Node.js is only used for te
 - [tests](/Users/pablo/code/APRebalance/tests): Node-based test files and sync checks
 - [CLAUDE.md](/Users/pablo/code/APRebalance/CLAUDE.md:1): repo-working guidance and invariants
 - [CHANGELOG.md](/Users/pablo/code/APRebalance/CHANGELOG.md:1): user-facing change history
-- [docs/superpowers/specs](/Users/pablo/code/APRebalance/docs/superpowers/specs/2026-04-14-cash-neutral-design.md:1): detailed design rationale and feature history
+- [docs/superpowers/specs](/Users/pablo/code/APRebalance/docs/superpowers/specs/2026-04-14-ui-refresh-design.md:1): detailed design rationale and feature history
 
 ## How It Works
 
@@ -221,11 +234,11 @@ open index.html
 Then:
 
 1. paste the AP portfolio dump
-2. click **Parse**
+2. click **Parse Model**
 3. paste your holdings
 4. enter your Finnhub API key
 5. choose coverage, tolerance, and cash adjustment
-6. click **Rebalance**
+6. click **Generate Trade Plan**
 
 ## Testing
 
