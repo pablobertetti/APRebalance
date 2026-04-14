@@ -23,6 +23,8 @@ No npm, no build step, no linter — Node.js is used only for tests.
 
 The app is a single `index.html` that includes all JS inline. During development, `src/` files can be loaded via `<script src>` tags; `index.html` currently has everything inlined.
 
+**Important:** `src/` and `index.html` are kept in sync manually. Any logic change to a `src/` file must also be applied to the corresponding inlined block in `index.html`, and vice versa.
+
 **Data flow:**
 1. User pastes AP portfolio dump → `parseAPDump()` → `[{ticker, weight}]`
 2. User pastes holdings CSV → `parsePortfolio()` → `{ticker: shares}`
