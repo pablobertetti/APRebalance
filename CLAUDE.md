@@ -40,7 +40,7 @@ The app is a single `index.html` that includes all JS inline. During development
 **Module responsibilities (`src/`):**
 - `ap-parser.js` — `parseAPDump(text)` — handles winner badge, dedup (summed weights), uppercase normalization
 - `portfolio-parser.js` — `parsePortfolio(text)`, `isValidPortfolio(text)` — CSV, dedup, zero-share filtering
-- `rebalancer.js` — `rebalance(apStocks, coveragePercent, prices, holdings)` — pure function, no side effects
+- `rebalancer.js` — `rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent, cashAdjustment)` — pure function, no side effects
 - `finnhub-provider.js` — `FinnhubProvider.getPrices(tickers, apiKey)` — browser `fetch`, concurrent via `Promise.all`
 - `ui.js` — all DOM wiring; reads globals set by the other modules
 
