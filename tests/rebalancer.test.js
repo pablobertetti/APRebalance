@@ -242,5 +242,42 @@ test('subtype is "close" for SELL of out-of-model stock', () => {
   assert.strictEqual(sellOut.subtype, 'close');
 });
 
+test('cashAdjustment increases totalValue and target shares', () => {
+  // ap=[A:10], price $100, holdings={A:5} → totalValue=500, target=floor(500/100)=5 (no trade)
+  // with cashAdjustment=+500 → totalValue=1000, target=floor(1000/100)=10 → BUY 5
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100 };
+  const holdings = { A: 5 };
+  const { trades, totalValue } = rebalance(ap, 100, prices, holdings, 0, 500);
+  assert.strictEqual(totalValue, 1000);
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  assert.ok(buyA, 'should BUY more A with extra cash');
+  assert.strictEqual(buyA.shares, 5);
+});
+
+test('cashAdjustment decreases totalValue and target shares', () => {
+  // ap=[A:10], price $100, holdings={A:10} → totalValue=1000, target=10 (no trade)
+  // with cashAdjustment=-500 → totalValue=500, target=floor(500/100)=5 → SELL 5
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100 };
+  const holdings = { A: 10 };
+  const { trades, totalValue } = rebalance(ap, 100, prices, holdings, 0, -500);
+  assert.strictEqual(totalValue, 500);
+  const sellA = trades.find(t => t.ticker === 'A' && t.action === 'SELL');
+  assert.ok(sellA, 'should SELL some A when cash is withdrawn');
+  assert.strictEqual(sellA.shares, 5);
+});
+
+test('cashAdjustment larger than portfolio value clamps to 0 and generates no trades', () => {
+  // ap=[A:10], price $100, holdings={A:5} → totalValue=500
+  // with cashAdjustment=-999999 → totalValue clamped to 0 → no trades
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100 };
+  const holdings = { A: 5 };
+  const { trades, totalValue } = rebalance(ap, 100, prices, holdings, 0, -999999);
+  assert.strictEqual(totalValue, 0);
+  assert.strictEqual(trades.length, 0);
+});
+
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log(`\n${passed} passed`);

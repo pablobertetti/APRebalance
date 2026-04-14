@@ -1,4 +1,4 @@
-function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0) {
+function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0, cashAdjustment = 0) {
   // Step 1: Sort by weight descending, filter to coverage threshold
   const sorted = [...apStocks].sort((a, b) => b.weight - a.weight);
   const totalAPWeight = sorted.reduce((sum, s) => sum + s.weight, 0);
@@ -23,7 +23,12 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
   let totalValue = Object.entries(holdings).reduce((sum, [ticker, shares]) => {
     return sum + shares * (prices[ticker] || 0);
   }, 0);
+  totalValue = Math.max(0, totalValue + cashAdjustment);
 
+  // If totalValue is 0, no trades can be made
+  if (totalValue === 0) {
+    return { trades: [], droppedCount: 0, skippedCount: 0, totalValue, deployedValue: 0 };
+  }
 
   // Step 4: Largest remainder method — compute floor shares and remainders
   const positions = normalized
