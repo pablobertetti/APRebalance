@@ -4,10 +4,11 @@
 
 ## 2026-04-14 — Cash-neutral rebalancing
 
-Rebalance trades now never require injecting unintentional cash into your portfolio:
+Rebalance trades now aim for the best whole-share balance between model replication and cash neutrality:
 
 - When the tolerance filter skips a trim (a position is slightly over its target weight), the rebalancer previously bought other stocks as if that cash had been freed — requiring you to inject the difference from your account's free cash balance.
-- The rebalancer now adjusts whole-share buys or trim sells so net cash flow lands as close as possible to the requested `cashAdjustment`.
+- The rebalancer now starts from the exact-target whole-share portfolio, then searches nearby whole-share adjustments to make net cash flow land as close as possible to the requested `cashAdjustment`.
+- That search can reduce buys, reduce trim sells, or add one extra share to an existing buy when that produces a better overall result.
 - **`cashAdjustment` is unaffected** — positive adjustments (intentional cash deployment) still work exactly as before.
 
 ---

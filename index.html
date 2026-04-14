@@ -211,38 +211,23 @@ function isValidPortfolio(text) {
 if (typeof module !== 'undefined') module.exports = { parsePortfolio, isValidPortfolio };
 
 // ── rebalancer.js ──
-function findNearestRemovalPlan(buyTrades, prices, cashDeficit) {
-  const targetCents = Math.round(cashDeficit * 100);
-  if (targetCents <= 0 || buyTrades.length === 0) return new Map();
+function findNearestLotPlan(lots, targetCents, preferOvershoot) {
+  if (targetCents <= 0 || lots.length === 0) return [];
 
-  const buyLots = [];
-  let maxPriceCents = 0;
-  for (const trade of buyTrades) {
-    const priceCents = Math.round((prices[trade.ticker] || 0) * 100);
-    if (priceCents <= 0 || trade.shares <= 0) continue;
-    maxPriceCents = Math.max(maxPriceCents, priceCents);
-
-    let remainingShares = trade.shares;
-    let chunkSize = 1;
-    while (remainingShares > 0) {
-      const shares = Math.min(chunkSize, remainingShares);
-      buyLots.push({ ticker: trade.ticker, shares, valueCents: shares * priceCents });
-      remainingShares -= shares;
-      chunkSize *= 2;
-    }
+  let maxValueCents = 0;
+  for (const lot of lots) {
+    maxValueCents = Math.max(maxValueCents, lot.valueCents);
   }
 
-  if (buyLots.length === 0) return new Map();
-
-  const searchLimit = targetCents + maxPriceCents;
+  const searchLimit = targetCents + maxValueCents;
   const prevSum = new Int32Array(searchLimit + 1);
   const prevLot = new Int32Array(searchLimit + 1);
   prevSum.fill(-1);
   prevLot.fill(-1);
   prevSum[0] = 0;
 
-  for (let i = 0; i < buyLots.length; i++) {
-    const lotValue = buyLots[i].valueCents;
+  for (let i = 0; i < lots.length; i++) {
+    const lotValue = lots[i].valueCents;
     for (let sum = searchLimit - lotValue; sum >= 0; sum--) {
       if (prevSum[sum] === -1) continue;
       const next = sum + lotValue;
@@ -259,22 +244,63 @@ function findNearestRemovalPlan(buyTrades, prices, cashDeficit) {
     const distance = Math.abs(sum - targetCents);
     if (
       distance < bestDistance ||
-      (distance === bestDistance && bestSum < targetCents && sum >= targetCents)
+      (
+        distance === bestDistance &&
+        (
+          (preferOvershoot && bestSum < targetCents && sum >= targetCents) ||
+          (!preferOvershoot && bestSum > targetCents && sum <= targetCents)
+        )
+      )
     ) {
       bestSum = sum;
       bestDistance = distance;
     }
   }
 
-  const removalShares = new Map();
+  const selectedLots = [];
   while (bestSum > 0) {
     const lotIndex = prevLot[bestSum];
-    const lot = buyLots[lotIndex];
-    removalShares.set(lot.ticker, (removalShares.get(lot.ticker) || 0) + lot.shares);
+    selectedLots.push(lots[lotIndex]);
     bestSum = prevSum[bestSum];
   }
 
-  return removalShares;
+  return selectedLots;
+}
+
+function buildRemovalLots(trades, prices) {
+  const lots = [];
+  for (const trade of trades) {
+    const priceCents = Math.round((prices[trade.ticker] || 0) * 100);
+    if (priceCents <= 0 || trade.shares <= 0) continue;
+
+    let remainingShares = trade.shares;
+    let chunkSize = 1;
+    while (remainingShares > 0) {
+      const shares = Math.min(chunkSize, remainingShares);
+      lots.push({ type: 'remove', ticker: trade.ticker, shares, valueCents: shares * priceCents });
+      remainingShares -= shares;
+      chunkSize *= 2;
+    }
+  }
+  return lots;
+}
+
+function buildExtraBuyLots(trades, prices) {
+  return trades
+    .map((trade) => {
+      const priceCents = Math.round((prices[trade.ticker] || 0) * 100);
+      if (priceCents <= 0) return null;
+      return { type: 'add', ticker: trade.ticker, shares: 1, valueCents: priceCents };
+    })
+    .filter(Boolean);
+}
+
+function sumSelectedShares(selectedLots) {
+  const sharesByTicker = new Map();
+  for (const lot of selectedLots) {
+    sharesByTicker.set(lot.ticker, (sharesByTicker.get(lot.ticker) || 0) + lot.shares);
+  }
+  return sharesByTicker;
 }
 
 function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0, cashAdjustment = 0) {
@@ -383,7 +409,12 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
 
   if (cashDeficit > 0) {
     const buyTrades = rawTrades.filter(t => t.action === 'BUY');
-    const removalShares = findNearestRemovalPlan(buyTrades, prices, cashDeficit);
+    const selectedLots = findNearestLotPlan(
+      buildRemovalLots(buyTrades, prices),
+      Math.round(cashDeficit * 100),
+      true
+    );
+    const removalShares = sumSelectedShares(selectedLots);
     for (const trade of buyTrades) {
       const sharesToRemove = removalShares.get(trade.ticker) || 0;
       if (sharesToRemove <= 0) continue;
@@ -394,14 +425,33 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
     }
   } else if (cashDeficit < 0) {
     const trimTrades = rawTrades.filter(t => t.action === 'SELL' && t.subtype === 'trim');
-    const removalShares = findNearestRemovalPlan(trimTrades, prices, -cashDeficit);
+    const buyTrades = rawTrades.filter(t => t.action === 'BUY');
+    const trimRemovalLots = buildRemovalLots(trimTrades, prices);
+    const extraBuyLots = buildExtraBuyLots(buyTrades, prices);
+    const selectedLots = findNearestLotPlan(
+      [...trimRemovalLots, ...extraBuyLots],
+      Math.round(-cashDeficit * 100),
+      false
+    );
+    const trimRemovalShares = sumSelectedShares(selectedLots.filter(lot => lot.type === 'remove'));
+    const extraBuyShares = sumSelectedShares(selectedLots.filter(lot => lot.type === 'add'));
+
     for (const trade of trimTrades) {
-      const sharesToRemove = removalShares.get(trade.ticker) || 0;
+      const sharesToRemove = trimRemovalShares.get(trade.ticker) || 0;
       if (sharesToRemove <= 0) continue;
       const price = prices[trade.ticker];
       trade.shares -= sharesToRemove;
       trade.estValue -= sharesToRemove * price;
       targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) + sharesToRemove);
+    }
+
+    for (const trade of buyTrades) {
+      const sharesToAdd = extraBuyShares.get(trade.ticker) || 0;
+      if (sharesToAdd <= 0) continue;
+      const price = prices[trade.ticker];
+      trade.shares += sharesToAdd;
+      trade.estValue += sharesToAdd * price;
+      targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) + sharesToAdd);
     }
   }
 

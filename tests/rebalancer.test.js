@@ -388,6 +388,23 @@ test('cash-neutral: reduces trim sells when sells exceed buys', () => {
   assert.strictEqual(sellX.shares, 14);
 });
 
+test('cash-neutral: adds one extra buy when it closes residual sell excess better', () => {
+  // totalValue = OUT 10 @$100 = $1000
+  // Model A/B at 60/40 with prices $60/$70 => targets A=10 ($600), B=5 ($350), buys=$950.
+  // OUT close sells $1000, so residual sell excess is $50.
+  // Adding one extra A share above target ($60) leaves only a $10 gap, which is the nearest result.
+  const ap = [{ ticker: 'A', weight: 6 }, { ticker: 'B', weight: 4 }];
+  const prices = { A: 60, B: 70, OUT: 100 };
+  const holdings = { OUT: 10 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 0);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.strictEqual(Math.abs(totalSells - totalBuys), 10, 'one extra buy should improve the residual sell excess to the nearest achievable gap');
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  assert.ok(buyA, 'A buy should remain');
+  assert.strictEqual(buyA.shares, 11);
+});
+
 test('cash-neutral: buy trade drained to zero when deficit exceeds its value', () => {
   // X=15 @$100 (tolerance-skipped trim at 50% tol, deviation=5/10=50%).
   // OUT=5 @$100 → SELL OUT 5 ($500).
