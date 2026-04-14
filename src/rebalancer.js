@@ -101,7 +101,7 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
   // one at a time until deficit ≤ 0 (nearest-to-zero with whole shares).
   const totalBuyValue = rawTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
   const totalSellValue = rawTrades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
-  let cashDeficit = totalBuyValue - totalSellValue - cashAdjustment;
+  let cashDeficit = Math.round((totalBuyValue - totalSellValue - cashAdjustment) * 100) / 100;
 
   if (cashDeficit > 0) {
     const buyTrades = rawTrades

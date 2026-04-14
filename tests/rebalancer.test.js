@@ -344,5 +344,31 @@ test('cash-neutral: high-price stocks close deficit in one share removal', () =>
   assert.strictEqual(buyY.shares, 19);
 });
 
+test('cash-neutral: buy trade drained to zero when deficit exceeds its value', () => {
+  // X=15 @$100 (tolerance-skipped trim at 50% tol, deviation=5/10=50%).
+  // OUT=5 @$100 → SELL OUT 5 ($500).
+  // BUY A 5 @$100 ($500), BUY B 10 @$50 ($500). Total buys=$1000, sells=$500. deficit=$500.
+  // A is highest price ($100). Drain A fully (5 shares, $500): deficit=0. B untouched.
+  const ap = [
+    { ticker: 'X', weight: 50 },
+    { ticker: 'A', weight: 25 },
+    { ticker: 'B', weight: 25 },
+  ];
+  const prices = { X: 100, A: 100, B: 50, OUT: 100 };
+  // X=15, OUT=5 → totalValue=2000. Target X=10, A=5, B=10 (exact, no LR).
+  const holdings = { X: 15, OUT: 5 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 50);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.ok(totalBuys <= totalSells, `buys ($${totalBuys}) should not exceed sells ($${totalSells})`);
+  // A should be fully drained (dropped by sub-$1 filter or absent)
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  assert.ok(!buyA, 'A buy should be eliminated (drained to zero)');
+  // B should still be present (deficit closed before reaching B)
+  const buyB = trades.find(t => t.ticker === 'B' && t.action === 'BUY');
+  assert.ok(buyB, 'B buy should survive (drain stopped at A)');
+  assert.strictEqual(buyB.shares, 10);
+});
+
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log(`\n${passed} passed`);
