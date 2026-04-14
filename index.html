@@ -90,7 +90,11 @@
         <input type="password" id="api-key" placeholder="your-finnhub-api-key" autocomplete="off">
         <div id="api-key-error" class="error-inline"></div>
       </div>
-      <div class="row" style="margin-top:16px;">
+      <div class="field-row" style="margin-top:16px;">
+        <label for="cash-adjustment">Cash adjustment ($):</label>
+        <input type="number" id="cash-adjustment" value="0" step="100" style="width:100px;">
+      </div>
+      <div class="row" style="margin-top:8px;">
         <button class="btn-rebalance" id="rebalance-btn" disabled>Rebalance</button>
       </div>
     </div>
@@ -206,7 +210,7 @@ function isValidPortfolio(text) {
 if (typeof module !== 'undefined') module.exports = { parsePortfolio, isValidPortfolio };
 
 // ── rebalancer.js ──
-function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0) {
+function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0, cashAdjustment = 0) {
   // Step 1: Sort by weight descending, filter to coverage threshold
   const sorted = [...apStocks].sort((a, b) => b.weight - a.weight);
   const totalAPWeight = sorted.reduce((sum, s) => sum + s.weight, 0);
@@ -231,7 +235,12 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
   let totalValue = Object.entries(holdings).reduce((sum, [ticker, shares]) => {
     return sum + shares * (prices[ticker] || 0);
   }, 0);
+  totalValue = Math.max(0, totalValue + cashAdjustment);
 
+  // If totalValue is 0, no trades can be made
+  if (totalValue === 0) {
+    return { trades: [], droppedCount: 0, skippedCount: 0, totalValue, deployedValue: 0 };
+  }
 
   // Step 4: Largest remainder method — compute floor shares and remainders
   const positions = normalized
@@ -620,7 +629,8 @@ document.getElementById('rebalance-btn').addEventListener('click', async () => {
   }
 
   const tolerancePct = parseFloat(document.getElementById('tolerance-input').value) || 0;
-  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings, tolerancePct);
+  const cashAdj = parseFloat(document.getElementById('cash-adjustment').value) || 0;
+  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings, tolerancePct, cashAdj);
   tradeContent.innerHTML = renderTrades(result);
   state.isRebalanced = true;
   btn.disabled = false;
