@@ -2,6 +2,7 @@ function parsePortfolio(text) {
   const lines = text.split('\n');
   const holdingMap = {};
   const errors = [];
+  const validSharePattern = /^(?:\d+(?:\.\d+)?|\.\d+)$/;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -17,7 +18,7 @@ function parsePortfolio(text) {
     const sharesStr = parts[1];
     const shares = parseFloat(sharesStr);
 
-    if (!ticker || isNaN(shares) || shares < 0) {
+    if (!ticker || !validSharePattern.test(sharesStr) || isNaN(shares) || shares < 0) {
       errors.push(`Line ${i + 1}: invalid ticker or share count`);
       continue;
     }

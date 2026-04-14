@@ -51,6 +51,16 @@ test('returns errors for invalid lines', () => {
   assert.strictEqual(errors.length, 1);
 });
 
+test('rejects malformed share counts with trailing characters', () => {
+  const { holdings, errors } = parsePortfolio('AAPL, 10foo');
+  assert.strictEqual(errors.length, 1);
+  assert.ok(!holdings['AAPL']);
+});
+
+test('isValidPortfolio returns false for malformed share counts', () => {
+  assert.strictEqual(isValidPortfolio('AAPL, 1e2xyz'), false);
+});
+
 test('isValidPortfolio returns true for valid input', () => {
   assert.strictEqual(isValidPortfolio('AAPL, 10\nMSFT, 5'), true);
 });

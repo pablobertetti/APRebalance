@@ -344,6 +344,33 @@ test('cash-neutral: high-price stocks close deficit in one share removal', () =>
   assert.strictEqual(buyY.shares, 19);
 });
 
+test('cash-neutral: chooses nearest-to-zero combination instead of greedy overshoot', () => {
+  // totalValue = X(21*$800) + OUT(1*$700) = $17,500
+  // Targets at 100% coverage with weights [160, 7, 8]:
+  // X=20 shares, A=1 share, B=2 shares.
+  // With 5% tolerance, X trim (1 share) is skipped, so raw buys are:
+  // A 1@$700 + B 2@$400 = $1,500; sells are OUT 1@$700 = $700; deficit = $800.
+  // Greedy highest-price-first would remove A ($700) and one B ($400) = $1,100,
+  // leaving an unnecessary $300 withdrawal.
+  // The nearest-zero removal is both B shares ($800) exactly.
+  const ap = [
+    { ticker: 'X', weight: 160 },
+    { ticker: 'A', weight: 7 },
+    { ticker: 'B', weight: 8 },
+  ];
+  const prices = { X: 800, A: 700, B: 400, OUT: 700 };
+  const holdings = { X: 21, OUT: 1 };
+  const { trades } = rebalance(ap, 100, prices, holdings, 5);
+  const totalBuys = trades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
+  const totalSells = trades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
+  assert.strictEqual(totalBuys, totalSells, 'should land exactly cash-neutral when a matching combination exists');
+  const buyA = trades.find(t => t.ticker === 'A' && t.action === 'BUY');
+  const buyB = trades.find(t => t.ticker === 'B' && t.action === 'BUY');
+  assert.ok(buyA, 'A buy should remain');
+  assert.strictEqual(buyA.shares, 1);
+  assert.ok(!buyB, 'B buy should be fully removed to hit the exact cash-neutral combination');
+});
+
 test('cash-neutral: buy trade drained to zero when deficit exceeds its value', () => {
   // X=15 @$100 (tolerance-skipped trim at 50% tol, deviation=5/10=50%).
   // OUT=5 @$100 → SELL OUT 5 ($500).

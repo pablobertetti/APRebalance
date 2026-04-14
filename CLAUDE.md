@@ -29,7 +29,7 @@ The app is a single `index.html` that includes all JS inline. During development
 1. User pastes AP portfolio dump → `parseAPDump()` → `[{ticker, weight}]`
 2. User pastes holdings CSV → `parsePortfolio()` → `{ticker: shares}`
 3. Coverage slider filters AP stocks by cumulative weight threshold (measured against the **actual sum of AP weights**, not 100)
-4. `rebalance()` renormalizes selected weights to 100%, computes target shares via largest-remainder method, diffs against current holdings, then post-processes to ensure `Σ(buys) ≤ Σ(sells) + cashAdjustment` (cash-neutral) → `{trades, droppedCount, skippedCount, totalValue, deployedValue}`
+4. `rebalance()` renormalizes selected weights to 100%, computes target shares via largest-remainder method, diffs against current holdings, then post-processes to make net cash flow land as close as possible to `cashAdjustment` with whole shares (cash-neutral by default) → `{trades, droppedCount, skippedCount, totalValue, deployedValue}`
 5. `FinnhubProvider.getPrices()` fetches live prices; Finnhub returns `c: 0` for unknown tickers (treated as not-found)
 
 **Key invariants:**

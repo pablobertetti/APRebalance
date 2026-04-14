@@ -251,10 +251,10 @@ document.getElementById('rebalance-btn').addEventListener('click', async () => {
   }
 
   const tolerancePct = parseFloat(document.getElementById('tolerance-input').value) || 0;
-  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings, tolerancePct);
+  const cashAdj = parseFloat(document.getElementById('cash-adjustment').value) || 0;
+  const result = rebalance(state.apStocks, coveragePct, prices, state.holdings, tolerancePct, cashAdj);
   tradeContent.innerHTML = renderTrades(result);
   state.isRebalanced = true;
   btn.disabled = false;
   updateRebalanceButton();
 });
-

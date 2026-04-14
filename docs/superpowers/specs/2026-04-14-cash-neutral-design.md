@@ -30,6 +30,14 @@ Without tolerance the first term dominates (small positive). With tolerance the 
 
 Cash neutrality is always on. No UI toggle. The only allowed deviation is an explicit `cashAdjustment` (already existing parameter). This is consistent with the principle that a rebalance reallocates existing value; it does not inject or withdraw cash unless the user asks.
 
+The post-processing step must minimize absolute net cash flow, not just prevent accidental injection. In other words, the goal is:
+
+```
+minimize |Σ(sells) - Σ(buys) - cashAdjustment|
+```
+
+subject to whole-share constraints. If two solutions are equally close, prefer the one that does not require extra capital beyond `cashAdjustment`.
+
 ---
 
 ## Algorithm Change (`rebalancer.js` only)
@@ -44,35 +52,30 @@ deficit = Σ(BUY rawTrades estValue)
         - cashAdjustment
 ```
 
-If `deficit ≤ 0`: nothing to do — rebalance is already cash-neutral or cash-positive.
+If `deficit ≤ 0`: nothing to do — rebalance is already at or below the desired net cash flow.
 
 If `deficit > 0`:
-1. Collect all BUY raw trades. Sort by `prices[ticker]` descending (highest price first, to close the gap in fewest share removals).
-2. For each buy trade in order:
-   - While `deficit > 0` and `trade.shares > 0`:
-     - `trade.shares -= 1`
-     - `trade.estValue -= prices[trade.ticker]`
-     - `targetSharesMap.set(ticker, targetSharesMap.get(ticker) - 1)`
-     - `deficit -= prices[trade.ticker]`
-   - Break out of the outer loop as soon as `deficit ≤ 0`.
-3. Trades reduced to 0 shares are naturally removed by the existing sub-$1 filter.
+1. Collect all BUY raw trades.
+2. Expand them into share-value lots and search for the combination of removable shares whose total value is closest to `deficit`.
+3. Apply that removal plan to the buy trades and update `targetSharesMap` in lockstep.
+4. Trades reduced to 0 shares are naturally removed by the existing sub-$1 filter.
 
 `targetSharesMap` is updated in lockstep so the `deployedValue` computation (which reads from `targetSharesMap`) remains correct.
 
-### Termination and overshoot
+### Termination and nearest-match behavior
 
-The loop always terminates: worst case all buy shares are removed, leaving `deficit = -Σ(sells) ≤ 0`.
+The search space is finite because each buy trade has a finite whole-share count. Worst case, all buy shares are removed.
 
-When `deficit` crosses zero it may go slightly negative (overshoot). The overshoot is at most `prices[ticker]` of the last share removed — one share of the highest-priced stock still being bought. This means the rebalance frees a small amount of extra cash rather than requiring any injection, which is harmless.
+If an exact match exists, the rebalance lands exactly on the requested net cash flow. If not, the algorithm chooses the nearest achievable whole-share result. On a tie, it prefers the no-extra-capital side.
 
-The result is always the **nearest-to-zero achievable deficit** given whole-share constraints.
+The result is always the **nearest achievable net cash flow** given whole-share constraints.
 
 ### Interaction with cashAdjustment
 
 Subtracting `cashAdjustment` from the deficit means:
-- `cashAdjustment = 0` (default): algorithm enforces `buys ≈ sells`.
-- `cashAdjustment > 0`: algorithm allows `buys - sells ≈ cashAdjustment` (intentional injection preserved).
-- `cashAdjustment < 0`: algorithm enforces `sells - buys ≈ |cashAdjustment|` (intentional withdrawal preserved).
+- `cashAdjustment = 0` (default): algorithm targets `buys ≈ sells`.
+- `cashAdjustment > 0`: algorithm targets `buys - sells ≈ cashAdjustment`.
+- `cashAdjustment < 0`: algorithm targets `sells - buys ≈ |cashAdjustment|`.
 
 ---
 
@@ -82,8 +85,9 @@ Subtracting `cashAdjustment` from the deficit means:
 |------|-----------------|
 | Tolerance-induced deficit | With tolerance > 0 and skipped trims present, `Σ(buys) ≤ Σ(sells)` after rebalance |
 | Zero tolerance unchanged | With `tolerancePercent = 0`, no buy reduction occurs; existing behaviour is untouched |
-| cashAdjustment preserved | With `cashAdjustment = X > 0`, `Σ(buys) - Σ(sells) ≤ X` (injection is capped, not eliminated) |
-| High-price stocks | Deficit closes in 1–2 share removals; net is cash-positive (overshoot is harmless) |
+| cashAdjustment preserved | With `cashAdjustment = X > 0`, net cash flow lands as close as possible to `X` |
+| High-price stocks | Deficit can close in 1–2 share removals when that is already the nearest achievable result |
+| Nearest-match vs greedy | A cheaper-share combination is chosen over a greedy high-price overshoot when it lands closer to zero |
 | All buys eliminated | If deficit exceeds total buy value, all buys are removed; `deficit = -Σ(sells) ≤ 0` |
 
 ---

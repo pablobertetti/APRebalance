@@ -1,3 +1,69 @@
+function findNearestRemovalPlan(buyTrades, prices, cashDeficit) {
+  const targetCents = Math.round(cashDeficit * 100);
+  if (targetCents <= 0 || buyTrades.length === 0) return new Map();
+
+  const buyLots = [];
+  let maxPriceCents = 0;
+  for (const trade of buyTrades) {
+    const priceCents = Math.round((prices[trade.ticker] || 0) * 100);
+    if (priceCents <= 0 || trade.shares <= 0) continue;
+    maxPriceCents = Math.max(maxPriceCents, priceCents);
+
+    let remainingShares = trade.shares;
+    let chunkSize = 1;
+    while (remainingShares > 0) {
+      const shares = Math.min(chunkSize, remainingShares);
+      buyLots.push({ ticker: trade.ticker, shares, valueCents: shares * priceCents });
+      remainingShares -= shares;
+      chunkSize *= 2;
+    }
+  }
+
+  if (buyLots.length === 0) return new Map();
+
+  const searchLimit = targetCents + maxPriceCents;
+  const prevSum = new Int32Array(searchLimit + 1);
+  const prevLot = new Int32Array(searchLimit + 1);
+  prevSum.fill(-1);
+  prevLot.fill(-1);
+  prevSum[0] = 0;
+
+  for (let i = 0; i < buyLots.length; i++) {
+    const lotValue = buyLots[i].valueCents;
+    for (let sum = searchLimit - lotValue; sum >= 0; sum--) {
+      if (prevSum[sum] === -1) continue;
+      const next = sum + lotValue;
+      if (prevSum[next] !== -1) continue;
+      prevSum[next] = sum;
+      prevLot[next] = i;
+    }
+  }
+
+  let bestSum = -1;
+  let bestDistance = Infinity;
+  for (let sum = 0; sum <= searchLimit; sum++) {
+    if (prevSum[sum] === -1) continue;
+    const distance = Math.abs(sum - targetCents);
+    if (
+      distance < bestDistance ||
+      (distance === bestDistance && bestSum < targetCents && sum >= targetCents)
+    ) {
+      bestSum = sum;
+      bestDistance = distance;
+    }
+  }
+
+  const removalShares = new Map();
+  while (bestSum > 0) {
+    const lotIndex = prevLot[bestSum];
+    const lot = buyLots[lotIndex];
+    removalShares.set(lot.ticker, (removalShares.get(lot.ticker) || 0) + lot.shares);
+    bestSum = prevSum[bestSum];
+  }
+
+  return removalShares;
+}
+
 function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0, cashAdjustment = 0) {
   // Step 1: Sort by weight descending, filter to coverage threshold
   const sorted = [...apStocks].sort((a, b) => b.weight - a.weight);
@@ -95,27 +161,23 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
     }
   }
 
-  // Cash-neutral adjustment: ensure buys don't exceed sells + cashAdjustment.
-  // Deficit arises when tolerance skips a trim — those unexecuted sells leave
-  // a funding gap for buys. Remove shares from the highest-priced buy trades
-  // one at a time until deficit ≤ 0 (nearest-to-zero with whole shares).
+  // Cash-neutral adjustment: minimize net cash flow after whole-share rounding.
+  // When tolerance skips trims, or whole-share constraints leave a mismatch,
+  // remove shares from buy trades so net cash is as close to zero as possible.
   const totalBuyValue = rawTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.estValue, 0);
   const totalSellValue = rawTrades.filter(t => t.action === 'SELL').reduce((s, t) => s + t.estValue, 0);
   let cashDeficit = Math.round((totalBuyValue - totalSellValue - cashAdjustment) * 100) / 100;
 
   if (cashDeficit > 0) {
-    const buyTrades = rawTrades
-      .filter(t => t.action === 'BUY')
-      .sort((a, b) => prices[b.ticker] - prices[a.ticker]);
+    const buyTrades = rawTrades.filter(t => t.action === 'BUY');
+    const removalShares = findNearestRemovalPlan(buyTrades, prices, cashDeficit);
     for (const trade of buyTrades) {
-      if (cashDeficit <= 0) break;
+      const sharesToRemove = removalShares.get(trade.ticker) || 0;
+      if (sharesToRemove <= 0) continue;
       const price = prices[trade.ticker];
-      while (cashDeficit > 0 && trade.shares > 0) {
-        trade.shares -= 1;
-        trade.estValue -= price;
-        targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) - 1);
-        cashDeficit -= price;
-      }
+      trade.shares -= sharesToRemove;
+      trade.estValue -= sharesToRemove * price;
+      targetSharesMap.set(trade.ticker, targetSharesMap.get(trade.ticker) - sharesToRemove);
     }
   }
 
