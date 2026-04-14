@@ -2,6 +2,16 @@
 
 ---
 
+## 2026-04-14 — Cash adjustment
+
+You can now specify a cash adjustment before rebalancing:
+
+- Enter a **positive amount** to deploy extra cash sitting in your brokerage account — the rebalancer will buy more shares to put it to work.
+- Enter a **negative amount** to model a withdrawal — the rebalancer will sell positions to free up the requested cash.
+- Defaults to **0** (no change to current behavior).
+
+---
+
 ## 2026-03-24 — Clearer trade labels
 
 The Action column now tells you more than just BUY or SELL:
