@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-04-14 — Minimal UI redesign
+
+The app was redesigned for a lighter, more condensed feel:
+
+- Single-column centered layout (620px) replacing the previous two-column card grid
+- Hero section, helper texts, and example chips removed — only labels and controls remain
+- Both buttons (Parse and Generate) are now full-width with a consistent flat dark style
+- Sections numbered 01/02/03 with minimal dividers instead of heavy card borders
+- **Rebalance Plan** replaces "Trade Plan" throughout
+- Coverage default lowered to 75%
+- Summary metrics simplified to Buys / Sells / Portfolio value
+- Settings reordered: API key → Rebalance tolerance % → Cash ±$
+- App renamed from `index.html` to `APRebalance.html`
+
+---
+
 ## 2026-04-14 — Guided UI refresh
 
 The app now presents the rebalance flow as a clearer 3-step workflow with stronger information hierarchy:
