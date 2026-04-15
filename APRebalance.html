@@ -6,447 +6,376 @@
   <title>AP Rebalancer</title>
   <style>
     :root {
-      --bg: #f3efe6;
-      --bg-accent: radial-gradient(circle at top left, rgba(228, 196, 116, 0.25), transparent 30%), radial-gradient(circle at top right, rgba(32, 84, 122, 0.12), transparent 28%);
-      --surface: rgba(255, 252, 246, 0.9);
-      --surface-strong: #ffffff;
+      --bg: #ede8df;
+      --surface: #fffcf6;
       --surface-muted: #f6f1e8;
       --border: #d9ccbb;
       --border-strong: #b79d74;
       --text: #1e2a32;
       --muted: #697680;
       --accent: #174f72;
-      --accent-strong: #0d3953;
       --success: #2f6b3d;
       --success-soft: #ebf5ee;
       --danger: #a6452d;
       --danger-soft: #fbefeb;
       --warning-soft: #fff7de;
-      --shadow: 0 18px 44px rgba(34, 42, 52, 0.08);
-      --radius-lg: 22px;
-      --radius-md: 16px;
-      --radius-sm: 12px;
-      --space-1: 6px;
-      --space-2: 10px;
-      --space-3: 14px;
-      --space-4: 18px;
-      --space-5: 24px;
-      --space-6: 32px;
+      --radius: 5px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.45;
-      background: var(--bg-accent), linear-gradient(180deg, #f8f4eb 0%, #efe8db 100%);
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
     }
     .container {
-      max-width: 1240px;
+      max-width: 640px;
       margin: 0 auto;
-      padding: 40px 20px 56px;
+      padding: 32px 20px 56px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 0;
     }
-    .hero {
-      background: linear-gradient(135deg, rgba(255, 252, 246, 0.9), rgba(245, 237, 223, 0.92));
-      border: 1px solid rgba(183, 157, 116, 0.35);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      padding: 28px;
-      display: grid;
-      gap: 20px;
-    }
-    .hero-copy {
-      display: grid;
-      gap: 10px;
-      max-width: 760px;
-    }
-    h1 {
-      font-size: clamp(2rem, 3vw, 3rem);
-      line-height: 1;
-      letter-spacing: -0.04em;
-      font-weight: 700;
-    }
-    .subtitle {
-      color: var(--muted);
-      font-size: 1rem;
-      max-width: 62ch;
-    }
-    .hero-meta {
+
+    /* Header */
+    .app-header {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .hero-pill, .inline-tag, .notice-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border-radius: 999px;
-      padding: 6px 11px;
-      font-size: 12px;
-      line-height: 1;
-      border: 1px solid transparent;
-    }
-    .hero-pill {
-      background: rgba(23, 79, 114, 0.08);
-      color: var(--accent-strong);
-      border-color: rgba(23, 79, 114, 0.12);
-    }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
-      gap: 24px;
-      align-items: start;
-    }
-    .left-column, .right-column {
-      display: grid;
-      gap: 24px;
-    }
-    .card {
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(217, 204, 187, 0.9);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      padding: 24px;
-    }
-    .card-head {
-      display: flex;
+      align-items: baseline;
       justify-content: space-between;
-      gap: 16px;
-      align-items: start;
-      margin-bottom: 16px;
+      margin-bottom: 28px;
     }
-    .eyebrow {
-      color: var(--accent);
-      font-size: 12px;
+    .wordmark {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .12em;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-      margin-bottom: 4px;
+      color: #4a3f33;
     }
-    .card h2 {
-      font-size: 24px;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      margin-bottom: 6px;
-    }
-    .section-copy {
+    .wordmark-sub {
+      font-size: 11px;
       color: var(--muted);
-      font-size: 14px;
-      max-width: 60ch;
     }
-    .step-badge {
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      border: 1px solid transparent;
+
+    /* Section divider */
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
     }
-    .step-badge.waiting { background: #f2ebe1; color: #7d6750; border-color: #dfd1be; }
-    .step-badge.ready { background: var(--success-soft); color: var(--success); border-color: #cce0d1; }
-    .step-badge.error { background: var(--danger-soft); color: var(--danger); border-color: #efc7bc; }
-    .step-badge.working { background: #e8f1f6; color: var(--accent); border-color: #c7dce7; }
-    .helper-text {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 8px;
-    }
-    .example-chip-row {
+
+    /* Section head */
+    .section-head {
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       gap: 8px;
-      margin-top: 10px;
+      margin-bottom: 14px;
     }
-    .example-chip {
-      background: var(--surface-muted);
-      border: 1px solid var(--border);
-      border-radius: 999px;
+    .section-num {
+      font-size: 9px;
+      font-weight: 700;
       color: var(--muted);
-      font-size: 12px;
-      padding: 6px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 5px;
+      letter-spacing: .06em;
     }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: #5a4e3f;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #4a3f33;
+      letter-spacing: .02em;
+      margin-bottom: 5px;
+    }
+
     textarea, input[type=password], input[type=number] {
       width: 100%;
-      background: rgba(255, 255, 255, 0.88);
+      background: var(--surface-muted);
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius);
       color: var(--text);
-      font-size: 14px;
-      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+      font-size: 13px;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
     }
     textarea {
-      min-height: 160px;
-      padding: 14px 15px;
+      min-height: 90px;
+      padding: 9px 10px;
       resize: vertical;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       line-height: 1.5;
     }
     input[type=password], input[type=number] {
-      padding: 12px 13px;
+      padding: 9px 10px;
     }
     textarea:focus, input[type=password]:focus, input[type=number]:focus, input[type=range]:focus {
       outline: none;
       border-color: var(--border-strong);
-      box-shadow: 0 0 0 4px rgba(183, 157, 116, 0.16);
+      box-shadow: 0 0 0 3px rgba(183, 157, 116, 0.14);
     }
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      margin-top: 14px;
-    }
+
+    /* Full-width flat button — used for Parse and Generate */
     button {
       border: 0;
-      border-radius: 999px;
+      border-radius: var(--radius);
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-      padding: 12px 18px;
-      transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
-    }
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #174f72, #23688f);
-      color: #fff;
-      box-shadow: 0 10px 24px rgba(23, 79, 114, 0.2);
-    }
-    .btn-primary:hover:not(:disabled) {
-      background: linear-gradient(135deg, #0d3953, #174f72);
-    }
-    .btn-rebalance {
-      background: linear-gradient(135deg, #2f6b3d, #498b56);
-      color: #fff;
-      box-shadow: 0 10px 24px rgba(47, 107, 61, 0.18);
-      padding-inline: 22px;
-    }
-    .btn-rebalance:hover:not(:disabled) {
-      background: linear-gradient(135deg, #295d35, #3b7a49);
-    }
-    .status-box, .banner {
-      border-radius: var(--radius-md);
-      padding: 12px 14px;
+      font-family: inherit;
       font-size: 13px;
-      border: 1px solid transparent;
+      font-weight: 500;
+      letter-spacing: .02em;
+      padding: 10px;
+      width: 100%;
+      margin-top: 10px;
+      transition: opacity 120ms ease;
     }
-    .status-box.subtle {
-      background: rgba(246, 241, 232, 0.72);
-      color: var(--muted);
-      border-color: rgba(217, 204, 187, 0.75);
+    button:hover:not(:disabled) { opacity: 0.88; }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
+    .btn-primary, .btn-rebalance {
+      background: #1e2a32;
+      color: #fff;
     }
-    .status-box.ok {
-      background: var(--success-soft);
-      color: var(--success);
-      border-color: #cce0d1;
+
+    /* Inline status line */
+    .status-line {
+      font-size: 11px;
+      margin-top: 6px;
+      min-height: 16px;
     }
-    .status-box.error, .banner.error {
+    .status-line.ok    { color: var(--success); }
+    .status-line.error { color: var(--danger); }
+    .status-line.muted { color: var(--muted); }
+
+    /* Error inline (api key) */
+    .error-inline {
+      min-height: 16px;
+      color: var(--danger);
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    /* Banner */
+    .banner.error {
       background: var(--danger-soft);
       color: var(--danger);
-      border-color: #efc7bc;
-    }
-    .metrics-grid, .result-summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-    }
-    .metric-card {
-      background: rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(217, 204, 187, 0.9);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      min-height: 84px;
-      display: grid;
-      align-content: start;
-      gap: 8px;
-    }
-    .metric-label {
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 700;
-    }
-    .metric-value {
-      font-size: 24px;
-      line-height: 1;
-      letter-spacing: -0.03em;
-    }
-    .table-wrap {
-      margin-top: 16px;
-      border: 1px solid rgba(217, 204, 187, 0.95);
-      border-radius: var(--radius-md);
-      overflow: auto;
-      background: rgba(255, 255, 255, 0.8);
-      max-height: 320px;
-    }
-    .trade-table-wrap {
-      max-height: 540px;
-      margin-top: 0;
-    }
-    table {
-      width: 100%;
-      min-width: 560px;
-      border-collapse: collapse;
+      border: 1px solid #efc7bc;
+      border-radius: var(--radius);
+      padding: 10px 12px;
       font-size: 13px;
     }
-    th {
-      background: #f5efe5;
-      color: #51616c;
+
+    /* Coverage row */
+    .coverage-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .coverage-row label { margin: 0; white-space: nowrap; }
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 3px;
+    }
+    .coverage-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 30px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Field layouts */
+    .field-row { display: grid; gap: 5px; }
+    .fields-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* AP table */
+    .table-wrap {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: auto;
+      background: var(--surface);
+      max-height: 240px;
+    }
+    .trade-table-wrap { max-height: 400px; margin-top: 0; }
+    table {
+      width: 100%;
+      min-width: 400px;
+      border-collapse: collapse;
       font-size: 12px;
+    }
+    th {
+      background: #f0ead9;
+      color: #5a4e3f;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 12px 14px;
+      letter-spacing: .07em;
+      padding: 6px 9px;
       text-align: left;
-      font-weight: 700;
+      font-weight: 600;
       position: sticky;
       top: 0;
-      border-bottom: 1px solid rgba(217, 204, 187, 0.9);
+      border-bottom: 1px solid var(--border);
     }
     td {
-      padding: 13px 14px;
-      border-bottom: 1px solid rgba(217, 204, 187, 0.52);
+      padding: 6px 9px;
+      border-bottom: 1px solid rgba(217, 204, 187, 0.45);
       vertical-align: middle;
     }
     tbody tr:last-child td { border-bottom: 0; }
     .numeric { text-align: right; font-variant-numeric: tabular-nums; }
-    tr.excluded td { color: #9b907f; background: rgba(246, 241, 232, 0.6); }
+    tr.excluded td { color: #9b907f; opacity: .55; }
+
     .ticker-chip {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 56px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: #f2ece1;
-      border: 1px solid rgba(183, 157, 116, 0.42);
-      font-size: 12px;
+      min-width: 48px;
+      padding: 3px 7px;
+      border-radius: 3px;
+      background: #ede5d8;
+      border: 1px solid rgba(183, 157, 116, 0.35);
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: .07em;
       color: #3a4b57;
     }
     .inline-tag {
-      background: #f3efe7;
-      border-color: rgba(217, 204, 187, 0.95);
-      color: #667680;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 10px;
+      border: 1px solid transparent;
+      background: #f0ead9;
+      color: #697680;
     }
-    .inline-tag.active {
-      background: #ecf3f6;
-      border-color: #c7dce7;
-      color: var(--accent);
-    }
-    .inline-tag.muted {
-      background: #f5efe5;
-      color: #8f8170;
-    }
+    .inline-tag.active { background: #e4f0e8; border-color: #b8d9c0; color: var(--success); }
+    .inline-tag.muted  { background: #f0ead9; color: #8a7b68; }
+
     .action-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 68px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 12px;
+      min-width: 44px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: .06em;
       color: #fff;
     }
-    .action-pill.buy { background: linear-gradient(135deg, #2f6b3d, #498b56); }
-    .action-pill.sell { background: linear-gradient(135deg, #a6452d, #c76449); }
-    .trade-row-buy td { color: #234f30; }
-    .trade-row-sell td { color: #853624; }
-    .settings-panel {
-      margin-top: 18px;
-      background: rgba(246, 241, 232, 0.74);
-      border: 1px solid rgba(217, 204, 187, 0.95);
-      border-radius: var(--radius-md);
-      padding: 18px;
+    .action-pill.buy  { background: #2f6b3d; }
+    .action-pill.sell { background: #a6452d; }
+    .trade-row-buy td  { background: #f5fbf6; color: #1e3d26; }
+    .trade-row-sell td { background: #fdf4f2; color: #6b2316; }
+
+    /* Result summary — 3 cols */
+    .result-summary {
       display: grid;
-      gap: 16px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
     }
-    .settings-head {
+    .metric-card {
+      text-align: center;
+    }
+    .metric-label {
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .metric-value {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-value.green { color: var(--success); }
+    .metric-value.red   { color: var(--danger); }
+
+    .notice-row {
+      margin: 0 0 12px;
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px;
     }
-    .settings-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .slider-row {
-      display: none;
-      gap: 16px;
-      align-items: end;
-      grid-template-columns: minmax(0, 1fr) 140px;
-    }
-    .slider-block {
-      display: grid;
-      gap: 8px;
-    }
-    .slider-meta {
-      display: flex;
-      justify-content: space-between;
+    .notice-chip {
+      display: inline-flex;
       align-items: center;
-      gap: 12px;
+      background: var(--warning-soft);
+      border: 1px solid #edd98f;
+      border-radius: 3px;
+      color: #8c6a00;
+      font-size: 10px;
+      padding: 2px 7px;
+    }
+
+    .empty-state, .loading-state {
+      min-height: 140px;
+      border: 1px dashed rgba(183, 157, 116, 0.5);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 8px;
+      padding: 24px;
       color: var(--muted);
       font-size: 13px;
     }
-    input[type=range] {
-      width: 100%;
-      accent-color: var(--accent);
+    .empty-state h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text);
     }
-    .coverage-value {
-      font-weight: 700;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
+    .loading-state { min-height: 100px; }
+    .loading-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      animation: pulse 1.2s infinite ease-out;
     }
-    .field-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(23, 79, 114, 0.22); transform: scale(1); }
+      70%  { box-shadow: 0 0 0 10px rgba(23, 79, 114, 0); transform: scale(1.1); }
+      100% { box-shadow: 0 0 0 0 rgba(23, 79, 114, 0); transform: scale(1); }
     }
-    .field-row { display: grid; gap: 8px; }
-    .error-inline {
-      min-height: 18px;
-      color: var(--danger);
-      font-size: 12px;
+
+    /* trade-note hidden — JS still sets it, we just don't show it */
+    .trade-note { display: none; }
+
+    @media (max-width: 680px) {
+      .container { padding: 20px 14px 40px; }
+      .result-summary { grid-template-columns: repeat(3, 1fr); }
     }
-    .api-note {
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 6px;
+    @media (max-width: 420px) {
+      .result-summary { grid-template-columns: 1fr 1fr; }
+      .fields-2col { grid-template-columns: 1fr; }
     }
-    .trade-note {
-      margin-top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
       color: var(--muted);
       font-size: 13px;
     }
@@ -527,130 +456,82 @@
 </head>
 <body>
   <div class="container">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Alpha Picks Workflow</p>
-        <h1>AP Rebalancer</h1>
-        <p class="subtitle">Paste the model, validate your holdings, and generate a live-price rebalance plan with clear cash impact and deployment visibility.</p>
+
+    <div class="app-header">
+      <span class="wordmark">AP Rebalancer</span>
+      <span class="wordmark-sub">Alpha Picks Workflow</span>
+    </div>
+
+    <!-- 01 Model -->
+    <section id="ap-panel">
+      <div class="section-head">
+        <span class="section-num">01</span>
+        <span class="section-title">Model</span>
       </div>
-      <div class="hero-meta">
-        <span class="hero-pill">Step 1: Parse model</span>
-        <span class="hero-pill">Step 2: Validate holdings</span>
-        <span class="hero-pill">Step 3: Build trade plan</span>
+
+      <div class="field-row">
+        <label for="ap-input">Alpha Picks dump</label>
+        <textarea id="ap-input" placeholder="Paste the Alpha Picks portfolio dump here..."></textarea>
+      </div>
+      <button class="btn-primary" id="parse-btn">Parse</button>
+      <div id="parse-status" class="status-line muted"></div>
+
+      <div id="ap-table-container"></div>
+
+      <div class="coverage-row" id="slider-row" style="display:none;">
+        <label for="coverage-slider">Coverage</label>
+        <input type="range" id="coverage-slider" min="1" max="100" value="75">
+        <span class="coverage-value"><span id="coverage-display">75</span>%</span>
       </div>
     </section>
 
-    <div class="layout">
-      <div class="left-column">
-        <section class="card" id="ap-panel">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Step 1</p>
-              <h2>Model Intake</h2>
-              <p class="section-copy">Paste the Alpha Picks dump exactly as exported. The app deduplicates tickers, sorts them by weight, and lets you choose how much of the model to track.</p>
-            </div>
-            <span class="step-badge waiting" id="ap-step-badge">Waiting</span>
-          </div>
+    <div class="section-divider"></div>
 
-          <label for="ap-input">Alpha Picks portfolio dump</label>
-          <textarea id="ap-input" placeholder="Paste the Alpha Picks portfolio dump here..."></textarea>
-          <p class="helper-text">The parser expects the standard AP block layout with the Company header and holding percentages.</p>
-          <div class="example-chip-row">
-            <span class="example-chip">Source format: Alpha Picks dump</span>
-            <span class="example-chip">Duplicate tickers are merged</span>
-            <span class="example-chip">Weights stay in percentage units</span>
-          </div>
-
-          <div class="row">
-            <button class="btn-primary" id="parse-btn">Parse Model</button>
-          </div>
-          <div id="parse-status" class="status-box subtle">Waiting for a model paste.</div>
-
-          <div class="metrics-grid" id="ap-summary"></div>
-          <div id="ap-table-container"></div>
-
-          <div class="settings-panel">
-            <div class="settings-head">
-              <div class="settings-title">Model Scope</div>
-              <div class="helper-text">Adjust coverage before generating trades.</div>
-            </div>
-            <div class="slider-row" id="slider-row" style="display:none;">
-              <div class="slider-block">
-                <label for="coverage-slider">Coverage threshold</label>
-                <div class="slider-meta">
-                  <span>Top cumulative model weight</span>
-                  <span class="coverage-value"><span id="coverage-display">80</span>%</span>
-                </div>
-                <input type="range" id="coverage-slider" min="1" max="100" value="80">
-              </div>
-              <div class="field-row">
-                <label for="tolerance-input">Tolerance %</label>
-                <input type="number" id="tolerance-input" min="0" max="10" step="0.5" value="0">
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="card" id="portfolio-panel">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Step 2</p>
-              <h2>Portfolio + Settings</h2>
-              <p class="section-copy">Enter one holding per line, then provide the Finnhub key used for live quotes and any cash adjustment you want modeled.</p>
-            </div>
-            <span class="step-badge waiting" id="portfolio-step-badge">Waiting</span>
-          </div>
-
-          <label for="portfolio-input">Current holdings</label>
-          <textarea id="portfolio-input" placeholder="AAPL, 10&#10;MSFT, 5&#10;GOOGL, 3"></textarea>
-          <div class="example-chip-row">
-            <span class="example-chip">Accepted: comma</span>
-            <span class="example-chip">Accepted: semicolon</span>
-            <span class="example-chip">Accepted: tab or space</span>
-          </div>
-          <div id="portfolio-status" class="status-box subtle">Enter one holding per line using TICKER and shares.</div>
-
-          <div class="settings-panel">
-            <div class="settings-head">
-              <div class="settings-title">Pricing + Rebalance Controls</div>
-              <div class="helper-text">The API key is stored locally in your browser.</div>
-            </div>
-            <div class="field-grid">
-              <div class="field-row">
-                <label for="api-key">Finnhub API Key</label>
-                <input type="password" id="api-key" placeholder="your-finnhub-api-key" autocomplete="off">
-                <div class="api-note">Used only for live price lookups.</div>
-                <div id="api-key-error" class="error-inline"></div>
-              </div>
-              <div class="field-row">
-                <label for="cash-adjustment">Cash adjustment ($)</label>
-                <input type="number" id="cash-adjustment" value="0" step="100">
-                <div class="api-note">Positive deploys cash; negative models a withdrawal.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <button class="btn-rebalance" id="rebalance-btn" disabled>Generate Trade Plan</button>
-          </div>
-        </section>
+    <!-- 02 Portfolio & Settings -->
+    <section id="portfolio-panel">
+      <div class="section-head">
+        <span class="section-num">02</span>
+        <span class="section-title">Portfolio &amp; Settings</span>
       </div>
 
-      <div class="right-column">
-        <section class="card" id="trade-panel">
-          <div class="card-head">
-            <div>
-              <p class="eyebrow">Step 3</p>
-              <h2>Trade Plan</h2>
-              <p class="section-copy">Review the trade list, net cash effect, and deployment level after whole-share rounding and tolerance filtering.</p>
-            </div>
-            <span class="step-badge waiting" id="trade-step-badge">Waiting</span>
-          </div>
-          <div class="trade-note" id="trade-note"><span>Waiting for a fresh rebalance run.</span></div>
-          <div id="trade-content"></div>
-        </section>
+      <div class="field-row">
+        <label for="portfolio-input">Holdings</label>
+        <textarea id="portfolio-input" placeholder="AAPL, 10&#10;MSFT, 5&#10;GOOGL, 3"></textarea>
       </div>
-    </div>
+      <div id="portfolio-status" class="status-line muted"></div>
+
+      <div class="field-row" style="margin-top:12px;">
+        <label for="api-key">Finnhub API key</label>
+        <input type="password" id="api-key" placeholder="your-finnhub-api-key" autocomplete="off">
+        <div id="api-key-error" class="error-inline"></div>
+      </div>
+
+      <div class="fields-2col">
+        <div class="field-row">
+          <label for="tolerance-input">Rebalance tolerance %</label>
+          <input type="number" id="tolerance-input" min="0" max="10" step="0.5" value="0">
+        </div>
+        <div class="field-row">
+          <label for="cash-adjustment">Cash ±$</label>
+          <input type="number" id="cash-adjustment" value="0" step="100">
+        </div>
+      </div>
+
+      <button class="btn-rebalance" id="rebalance-btn" disabled>Generate Rebalance Plan</button>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- 03 Rebalance Plan -->
+    <section id="trade-panel">
+      <div class="section-head">
+        <span class="section-num">03</span>
+        <span class="section-title">Rebalance Plan</span>
+      </div>
+      <div class="trade-note" id="trade-note"><span>Waiting for a fresh rebalance run.</span></div>
+      <div id="trade-content"></div>
+    </section>
+
   </div>
 
 <script>
@@ -1129,7 +1010,7 @@ function renderTradeEmptyState(message, detail) {
 function clearTrades() {
   state.isRebalanced = false;
   document.getElementById('trade-content').innerHTML = renderTradeEmptyState(
-    'Trade plan pending',
+    'Rebalance plan pending',
     'Parse the model and confirm your holdings to generate a rebalance plan.'
   );
   setTradeNote('<span>Waiting for a fresh rebalance run.</span>');
@@ -1174,41 +1055,8 @@ function renderAPTable(stocks, coveragePct) {
 }
 
 function updateAPSummary() {
-  const summary = document.getElementById('ap-summary');
   const coveragePct = parseInt(document.getElementById('coverage-slider').value, 10);
   document.getElementById('coverage-display').textContent = coveragePct;
-
-  if (!state.apStocks) {
-    summary.innerHTML = `
-      <div class="metric-card">
-        <span class="metric-label">Model status</span>
-        <strong class="metric-value">Waiting</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Coverage</span>
-        <strong class="metric-value">${coveragePct}%</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Included names</span>
-        <strong class="metric-value">0</strong>
-      </div>`;
-    return;
-  }
-
-  const stats = getAPCoverageStats(state.apStocks, coveragePct);
-  summary.innerHTML = `
-    <div class="metric-card">
-      <span class="metric-label">Model names</span>
-      <strong class="metric-value">${state.apStocks.length}</strong>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Coverage target</span>
-      <strong class="metric-value">${coveragePct}%</strong>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Included names</span>
-      <strong class="metric-value">${stats.includedCount}</strong>
-    </div>`;
 }
 
 function updateSliderGreying() {
@@ -1244,16 +1092,16 @@ document.getElementById('parse-btn').addEventListener('click', () => {
 
     const coveragePct = parseInt(document.getElementById('coverage-slider').value, 10);
     document.getElementById('ap-table-container').innerHTML = renderAPTable(stocks, coveragePct);
-    document.getElementById('slider-row').style.display = 'grid';
+    document.getElementById('slider-row').style.display = 'flex';
     updateAPSummary();
     updateSliderGreying();
 
-    status.className = 'status-box ok';
-    status.textContent = `${stocks.length} model positions parsed successfully.`;
+    status.className = 'status-line ok';
+    status.textContent = `✓ ${stocks.length} stocks parsed`;
     setStepState('ap-step-badge', 'ready', 'Ready');
     clearTrades();
   } catch (e) {
-    status.className = 'status-box error';
+    status.className = 'status-line error';
     status.textContent = e.message;
     state.apStocks = null;
     document.getElementById('ap-table-container').innerHTML = '';
@@ -1285,8 +1133,8 @@ function updatePortfolioStatus() {
   const statusEl = document.getElementById('portfolio-status');
 
   if (!text.trim()) {
-    statusEl.className = 'status-box subtle';
-    statusEl.textContent = 'Enter one holding per line using TICKER and shares.';
+    statusEl.className = 'status-line muted';
+    statusEl.textContent = '';
     state.holdings = null;
     setStepState('portfolio-step-badge', 'waiting', 'Waiting');
     updateRebalanceButton();
@@ -1296,19 +1144,19 @@ function updatePortfolioStatus() {
   const { holdings, errors } = parsePortfolio(text);
 
   if (errors.length > 0) {
-    statusEl.className = 'status-box error';
+    statusEl.className = 'status-line error';
     statusEl.textContent = errors[0];
     state.holdings = null;
     setStepState('portfolio-step-badge', 'error', 'Needs Fix');
   } else if (Object.keys(holdings).length === 0) {
-    statusEl.className = 'status-box error';
+    statusEl.className = 'status-line error';
     statusEl.textContent = 'No valid holdings found.';
     state.holdings = null;
     setStepState('portfolio-step-badge', 'error', 'Needs Fix');
   } else {
     const count = Object.keys(holdings).length;
-    statusEl.className = 'status-box ok';
-    statusEl.textContent = `${count} position${count !== 1 ? 's' : ''} ready for pricing.`;
+    statusEl.className = 'status-line ok';
+    statusEl.textContent = `✓ ${count} position${count !== 1 ? 's' : ''}`;
     state.holdings = holdings;
     setStepState('portfolio-step-badge', 'ready', 'Ready');
   }
@@ -1353,20 +1201,16 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
     return `<div class="result-shell">
       <div class="result-summary">
         <div class="metric-card">
-          <span class="metric-label">Portfolio value</span>
+          <div class="metric-label">Buys</div>
+          <strong class="metric-value green">${fmt(0)}</strong>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sells</div>
+          <strong class="metric-value red">${fmt(0)}</strong>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Portfolio value</div>
           <strong class="metric-value">${fmt(totalValue)}</strong>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Total buys</span>
-          <strong class="metric-value">${fmt(0)}</strong>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Total sells</span>
-          <strong class="metric-value">${fmt(0)}</strong>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Deployed</span>
-          <strong class="metric-value">${totalValue > 0 ? ((deployedValue / totalValue) * 100).toFixed(1) : '0.0'}%</strong>
         </div>
       </div>
       ${renderTradeEmptyState('Already balanced', 'The current holdings are already close enough to the target. No trades are needed.')}
@@ -1377,8 +1221,6 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
   const sells = trades.filter(t => t.action === 'SELL').sort((a, b) => b.estValue - a.estValue);
   const totalBuy = buys.reduce((s, t) => s + t.estValue, 0);
   const totalSell = sells.reduce((s, t) => s + t.estValue, 0);
-  const deployedPct = totalValue > 0 ? ((deployedValue / totalValue) * 100).toFixed(1) : '0.0';
-  const netCash = totalSell - totalBuy;
 
   const notices = [
     droppedCount > 0 ? `<div class="notice-chip">Ignored ${droppedCount} trade${droppedCount !== 1 ? 's' : ''} under $1.</div>` : '',
@@ -1388,24 +1230,16 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
   return `<div class="result-shell">
     <div class="result-summary">
       <div class="metric-card">
-        <span class="metric-label">Portfolio value</span>
+        <div class="metric-label">Buys</div>
+        <strong class="metric-value green">${fmt(totalBuy)}</strong>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Sells</div>
+        <strong class="metric-value red">${fmt(totalSell)}</strong>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Portfolio value</div>
         <strong class="metric-value">${fmt(totalValue)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Total buys</span>
-        <strong class="metric-value">${fmt(totalBuy)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Total sells</span>
-        <strong class="metric-value">${fmt(totalSell)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Net cash effect</span>
-        <strong class="metric-value">${fmt(netCash)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Deployed</span>
-        <strong class="metric-value">${deployedPct}%</strong>
       </div>
     </div>
     ${notices ? `<div class="notice-row">${notices}</div>` : ''}
@@ -1469,7 +1303,7 @@ document.getElementById('rebalance-btn').addEventListener('click', async () => {
   state.isRebalanced = true;
   btn.disabled = false;
   setStepState('trade-step-badge', 'ready', 'Calculated');
-  setTradeNote('<span>Trade plan reflects current coverage, tolerance, and cash settings.</span>');
+  setTradeNote('<span>Rebalance plan reflects current coverage, tolerance, and cash settings.</span>');
   updateRebalanceButton();
 });
 

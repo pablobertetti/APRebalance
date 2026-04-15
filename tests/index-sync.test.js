@@ -33,7 +33,7 @@ function extractBetween(text, startMarker, endMarker) {
 }
 
 const repoRoot = path.resolve(__dirname, '..');
-const indexHtml = fs.readFileSync(path.join(repoRoot, 'index.html'), 'utf8');
+const indexHtml = fs.readFileSync(path.join(repoRoot, 'APRebalance.html'), 'utf8');
 
 const blocks = [
   {
@@ -64,7 +64,7 @@ const blocks = [
 ];
 
 for (const block of blocks) {
-  test(`index.html inlined ${block.name} matches src/${block.name}.js`, () => {
+  test(`APRebalance.html inlined ${block.name} matches src/${block.name}.js`, () => {
     const srcText = normalize(fs.readFileSync(block.srcPath, 'utf8'));
     const indexText = normalize(block.indexBlock);
     assert.strictEqual(indexText, srcText);

@@ -58,7 +58,7 @@ function renderTradeEmptyState(message, detail) {
 function clearTrades() {
   state.isRebalanced = false;
   document.getElementById('trade-content').innerHTML = renderTradeEmptyState(
-    'Trade plan pending',
+    'Rebalance plan pending',
     'Parse the model and confirm your holdings to generate a rebalance plan.'
   );
   setTradeNote('<span>Waiting for a fresh rebalance run.</span>');
@@ -103,41 +103,8 @@ function renderAPTable(stocks, coveragePct) {
 }
 
 function updateAPSummary() {
-  const summary = document.getElementById('ap-summary');
   const coveragePct = parseInt(document.getElementById('coverage-slider').value, 10);
   document.getElementById('coverage-display').textContent = coveragePct;
-
-  if (!state.apStocks) {
-    summary.innerHTML = `
-      <div class="metric-card">
-        <span class="metric-label">Model status</span>
-        <strong class="metric-value">Waiting</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Coverage</span>
-        <strong class="metric-value">${coveragePct}%</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Included names</span>
-        <strong class="metric-value">0</strong>
-      </div>`;
-    return;
-  }
-
-  const stats = getAPCoverageStats(state.apStocks, coveragePct);
-  summary.innerHTML = `
-    <div class="metric-card">
-      <span class="metric-label">Model names</span>
-      <strong class="metric-value">${state.apStocks.length}</strong>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Coverage target</span>
-      <strong class="metric-value">${coveragePct}%</strong>
-    </div>
-    <div class="metric-card">
-      <span class="metric-label">Included names</span>
-      <strong class="metric-value">${stats.includedCount}</strong>
-    </div>`;
 }
 
 function updateSliderGreying() {
@@ -173,16 +140,16 @@ document.getElementById('parse-btn').addEventListener('click', () => {
 
     const coveragePct = parseInt(document.getElementById('coverage-slider').value, 10);
     document.getElementById('ap-table-container').innerHTML = renderAPTable(stocks, coveragePct);
-    document.getElementById('slider-row').style.display = 'grid';
+    document.getElementById('slider-row').style.display = 'flex';
     updateAPSummary();
     updateSliderGreying();
 
-    status.className = 'status-box ok';
-    status.textContent = `${stocks.length} model positions parsed successfully.`;
+    status.className = 'status-line ok';
+    status.textContent = `✓ ${stocks.length} stocks parsed`;
     setStepState('ap-step-badge', 'ready', 'Ready');
     clearTrades();
   } catch (e) {
-    status.className = 'status-box error';
+    status.className = 'status-line error';
     status.textContent = e.message;
     state.apStocks = null;
     document.getElementById('ap-table-container').innerHTML = '';
@@ -214,8 +181,8 @@ function updatePortfolioStatus() {
   const statusEl = document.getElementById('portfolio-status');
 
   if (!text.trim()) {
-    statusEl.className = 'status-box subtle';
-    statusEl.textContent = 'Enter one holding per line using TICKER and shares.';
+    statusEl.className = 'status-line muted';
+    statusEl.textContent = '';
     state.holdings = null;
     setStepState('portfolio-step-badge', 'waiting', 'Waiting');
     updateRebalanceButton();
@@ -225,19 +192,19 @@ function updatePortfolioStatus() {
   const { holdings, errors } = parsePortfolio(text);
 
   if (errors.length > 0) {
-    statusEl.className = 'status-box error';
+    statusEl.className = 'status-line error';
     statusEl.textContent = errors[0];
     state.holdings = null;
     setStepState('portfolio-step-badge', 'error', 'Needs Fix');
   } else if (Object.keys(holdings).length === 0) {
-    statusEl.className = 'status-box error';
+    statusEl.className = 'status-line error';
     statusEl.textContent = 'No valid holdings found.';
     state.holdings = null;
     setStepState('portfolio-step-badge', 'error', 'Needs Fix');
   } else {
     const count = Object.keys(holdings).length;
-    statusEl.className = 'status-box ok';
-    statusEl.textContent = `${count} position${count !== 1 ? 's' : ''} ready for pricing.`;
+    statusEl.className = 'status-line ok';
+    statusEl.textContent = `✓ ${count} position${count !== 1 ? 's' : ''}`;
     state.holdings = holdings;
     setStepState('portfolio-step-badge', 'ready', 'Ready');
   }
@@ -282,20 +249,16 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
     return `<div class="result-shell">
       <div class="result-summary">
         <div class="metric-card">
-          <span class="metric-label">Portfolio value</span>
+          <div class="metric-label">Buys</div>
+          <strong class="metric-value green">${fmt(0)}</strong>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sells</div>
+          <strong class="metric-value red">${fmt(0)}</strong>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Portfolio value</div>
           <strong class="metric-value">${fmt(totalValue)}</strong>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Total buys</span>
-          <strong class="metric-value">${fmt(0)}</strong>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Total sells</span>
-          <strong class="metric-value">${fmt(0)}</strong>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Deployed</span>
-          <strong class="metric-value">${totalValue > 0 ? ((deployedValue / totalValue) * 100).toFixed(1) : '0.0'}%</strong>
         </div>
       </div>
       ${renderTradeEmptyState('Already balanced', 'The current holdings are already close enough to the target. No trades are needed.')}
@@ -306,8 +269,6 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
   const sells = trades.filter(t => t.action === 'SELL').sort((a, b) => b.estValue - a.estValue);
   const totalBuy = buys.reduce((s, t) => s + t.estValue, 0);
   const totalSell = sells.reduce((s, t) => s + t.estValue, 0);
-  const deployedPct = totalValue > 0 ? ((deployedValue / totalValue) * 100).toFixed(1) : '0.0';
-  const netCash = totalSell - totalBuy;
 
   const notices = [
     droppedCount > 0 ? `<div class="notice-chip">Ignored ${droppedCount} trade${droppedCount !== 1 ? 's' : ''} under $1.</div>` : '',
@@ -317,24 +278,16 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
   return `<div class="result-shell">
     <div class="result-summary">
       <div class="metric-card">
-        <span class="metric-label">Portfolio value</span>
+        <div class="metric-label">Buys</div>
+        <strong class="metric-value green">${fmt(totalBuy)}</strong>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Sells</div>
+        <strong class="metric-value red">${fmt(totalSell)}</strong>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Portfolio value</div>
         <strong class="metric-value">${fmt(totalValue)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Total buys</span>
-        <strong class="metric-value">${fmt(totalBuy)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Total sells</span>
-        <strong class="metric-value">${fmt(totalSell)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Net cash effect</span>
-        <strong class="metric-value">${fmt(netCash)}</strong>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">Deployed</span>
-        <strong class="metric-value">${deployedPct}%</strong>
       </div>
     </div>
     ${notices ? `<div class="notice-row">${notices}</div>` : ''}
@@ -398,7 +351,7 @@ document.getElementById('rebalance-btn').addEventListener('click', async () => {
   state.isRebalanced = true;
   btn.disabled = false;
   setStepState('trade-step-badge', 'ready', 'Calculated');
-  setTradeNote('<span>Trade plan reflects current coverage, tolerance, and cash settings.</span>');
+  setTradeNote('<span>Rebalance plan reflects current coverage, tolerance, and cash settings.</span>');
   updateRebalanceButton();
 });
 
