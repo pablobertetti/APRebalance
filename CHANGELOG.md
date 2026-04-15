@@ -14,7 +14,7 @@ The app was redesigned for a lighter, more condensed feel:
 - Coverage default lowered to 75%
 - Summary metrics simplified to Buys / Sells / Portfolio value
 - Settings reordered: API key → Rebalance tolerance % → Cash ±$
-- App renamed from `index.html` to `APRebalance.html`
+- App renamed from `index.html` to `index.html`
 
 ---
 

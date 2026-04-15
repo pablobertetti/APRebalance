@@ -48,7 +48,7 @@ Trade output distinguishes:
 
 ## How It’s Implemented
 
-The shipped app is a single [APRebalance.html](/Users/pablo/code/APRebalance/APRebalance.html:1) file with all CSS and JavaScript inlined.
+The shipped app is a single [index.html](/Users/pablo/code/APRebalance/index.html:1) file with all CSS and JavaScript inlined.
 
 For development, the logic also exists as mirrored modules under [src](/Users/pablo/code/APRebalance/src):
 
@@ -60,7 +60,7 @@ For development, the logic also exists as mirrored modules under [src](/Users/pa
 
 Important repo rule:
 
-- `src/` and `APRebalance.html` are manually mirrored
+- `src/` and `index.html` are manually mirrored
 - any logic change must be applied to both
 - the test suite includes a parity check to catch drift
 
@@ -68,7 +68,7 @@ There is no build step, no npm setup, and no server. Node.js is only used for te
 
 ## Project Structure
 
-- [APRebalance.html](/Users/pablo/code/APRebalance/APRebalance.html:1): shipped browser app
+- [index.html](/Users/pablo/code/APRebalance/index.html:1): shipped browser app
 - [src](/Users/pablo/code/APRebalance/src): mirrored source modules for development and tests
 - [tests](/Users/pablo/code/APRebalance/tests): Node-based test files and sync checks
 - [CLAUDE.md](/Users/pablo/code/APRebalance/CLAUDE.md:1): repo-working guidance and invariants
@@ -228,7 +228,7 @@ Sometimes the result will be exact. Sometimes a small residual difference will r
 Open the app locally:
 
 ```bash
-open APRebalance.html
+open index.html
 ```
 
 Then:

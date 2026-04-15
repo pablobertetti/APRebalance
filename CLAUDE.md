@@ -14,16 +14,16 @@ node tests/portfolio-parser.test.js
 node tests/rebalancer.test.js
 
 # Open the app
-open APRebalance.html
+open index.html
 ```
 
 No npm, no build step, no linter — Node.js is used only for tests.
 
 ## Architecture
 
-The app is a single `APRebalance.html` that includes all JS inline. During development, `src/` files can be loaded via `<script src>` tags; `APRebalance.html` currently has everything inlined.
+The app is a single `index.html` that includes all JS inline. During development, `src/` files can be loaded via `<script src>` tags; `index.html` currently has everything inlined.
 
-**Important:** `src/` and `APRebalance.html` are kept in sync manually. Any logic change to a `src/` file must also be applied to the corresponding inlined block in `APRebalance.html`, and vice versa.
+**Important:** `src/` and `index.html` are kept in sync manually. Any logic change to a `src/` file must also be applied to the corresponding inlined block in `index.html`, and vice versa.
 
 **Data flow:**
 1. User pastes AP portfolio dump → `parseAPDump()` → `[{ticker, weight}]`
