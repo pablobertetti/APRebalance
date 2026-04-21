@@ -196,7 +196,7 @@ Where:
 - `100%` means the portfolio's value is allocated exactly like the active AP model
 - positions outside the model, overweight positions, underweight positions, and undeployed cash all reduce the score
 
-The UI shows the score as `current -> after`. Hovering or focusing the AP Match metric shows the largest current gaps, labeled as `underweight`, `overweight`, or `outside model`.
+The UI shows the score as `current% → rebalanced%`. Hovering or focusing the AP Match metric shows the largest current gaps, labeled as `underweight`, `overweight`, or `outside model`.
 
 ## Cash-Neutral Optimization
 

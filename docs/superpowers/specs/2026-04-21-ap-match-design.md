@@ -75,7 +75,7 @@ The Rebalance Plan summary includes an **AP Match** metric card before buys, sel
 The card displays:
 
 ```text
-current% to after%
+current% → rebalanced%
 ```
 
 The visual card does not show the percentage-point delta underneath, to keep the summary compact. The delta remains in the accessible label.

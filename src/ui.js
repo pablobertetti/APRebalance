@@ -276,9 +276,9 @@ function renderMatchingCard(matching) {
   const delta = Math.round((after - current) * 10) / 10;
   const deltaText = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp`;
 
-  return `<div class="metric-card match-card" tabindex="0" aria-label="AP Match ${fmtPct(current)} to ${fmtPct(after)}, ${deltaText}">
+  return `<div class="metric-card match-card" tabindex="0" aria-label="AP Match current ${fmtPct(current)}, rebalanced ${fmtPct(after)}, ${deltaText}">
     <div class="metric-label">AP Match</div>
-    <strong class="metric-value">${fmtPct(current)} <span class="metric-arrow">to</span> ${fmtPct(after)}</strong>
+    <strong class="metric-value">${fmtPct(current)} <span class="match-arrow">→</span> ${fmtPct(after)}</strong>
     <div class="match-tooltip" role="tooltip">
       <div class="match-tooltip-title">Top gaps now</div>
       ${renderGapRows(matching.current?.gaps)}
