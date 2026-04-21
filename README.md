@@ -18,9 +18,9 @@ The app then:
 
 The current UI is organized as a guided 3-step workflow:
 
-1. **Model Intake** — paste and parse the Alpha Picks dump
-2. **Portfolio + Settings** — validate holdings, provide your Finnhub API key, and set coverage/tolerance/cash controls
-3. **Trade Plan** — review the resulting trades, net cash effect, and deployment summary
+1. **Model** — paste and parse the Alpha Picks dump
+2. **Portfolio & Settings** — validate holdings, provide your Finnhub API key, and set coverage/tolerance/cash controls
+3. **Rebalance Plan** — review the resulting trades, AP match, and portfolio summary
 
 ## What It Does
 
@@ -36,7 +36,8 @@ The UI also surfaces:
 
 - step status badges (`Waiting`, `Ready`, `Needs Fix`, `Calculated`)
 - a compact model summary after parsing
-- a trade summary with portfolio value, total buys, total sells, net cash effect, and deployed percentage
+- a rebalance summary with AP Match, total buys, total sells, and portfolio value
+- hover/focus gap detail showing the largest current mismatches against the AP model
 - clearer empty, loading, error, and already-balanced states
 
 Trade output distinguishes:
@@ -86,6 +87,7 @@ At a high level:
 5. Compute target whole-share positions for the active model.
 6. Generate BUY/SELL trades against current holdings.
 7. Adjust nearby whole-share trades to improve cash neutrality.
+8. Score current and post-rebalance AP Match by market-value overlap.
 
 ### AP Model Parsing
 
@@ -177,6 +179,25 @@ The app then generates:
 
 Trades under `$1` estimated value are dropped from the final output.
 
+## AP Match
+
+The rebalance result includes an **AP Match** score for the current portfolio and for the projected portfolio after applying the generated trades.
+
+The score is based on market-value allocation overlap:
+
+```text
+AP Match = sum(min(actualWeight[ticker], modelWeight[ticker]))
+```
+
+Where:
+
+- `modelWeight` is the active AP model after coverage filtering and re-normalization
+- `actualWeight` is the portfolio's current market-value weight for the ticker
+- `100%` means the portfolio's value is allocated exactly like the active AP model
+- positions outside the model, overweight positions, underweight positions, and undeployed cash all reduce the score
+
+The UI shows the score as `current -> after`. Hovering or focusing the AP Match metric shows the largest current gaps, labeled as `underweight`, `overweight`, or `outside model`.
+
 ## Cash-Neutral Optimization
 
 This part is important because exact portfolio replication and cash neutrality are not always simultaneously achievable with whole shares.
@@ -234,11 +255,11 @@ open index.html
 Then:
 
 1. paste the AP portfolio dump
-2. click **Parse Model**
+2. click **Parse**
 3. paste your holdings
 4. enter your Finnhub API key
 5. choose coverage, tolerance, and cash adjustment
-6. click **Generate Trade Plan**
+6. click **Generate Rebalance Plan**
 
 ## Testing
 

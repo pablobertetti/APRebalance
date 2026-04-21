@@ -26,9 +26,9 @@ The redesign keeps the app static and framework-free while making the workflow e
 
 The interface now follows three explicit steps:
 
-1. `Model Intake`
-2. `Portfolio + Settings`
-3. `Trade Plan`
+1. `Model`
+2. `Portfolio & Settings`
+3. `Rebalance Plan`
 
 Each section includes a visible state badge so the page communicates progress at a glance:
 
@@ -56,13 +56,14 @@ The goal is a tool that still feels lightweight, but more like a purposeful fina
 
 The trade output now includes a compact summary before the table:
 
+- AP Match
 - portfolio value
 - total buys
 - total sells
-- net cash effect
-- deployed percentage
 
-This addresses a previous gap where users had to read the table first and mentally compute what mattered.
+AP Match shows current allocation overlap against the active AP model and the projected overlap after applying the generated trades. Hover/focus reveals the largest current gaps without adding a permanent table.
+
+This addresses a previous gap where users had to read the trade table first and mentally compute what mattered.
 
 ### 4. Clarify model and portfolio readiness
 
@@ -84,19 +85,19 @@ This makes invalid or incomplete states much more obvious without changing the u
 
 ## Implementation Notes
 
-- No changes to rebalance math, parser behavior, or external inputs
+- No changes to parser behavior or external inputs
 - No build step added
 - No framework introduced
 - `index.html` remains the shipped app
 - `src/ui.js` remains the mirrored UI source and must stay identical to the inlined UI block in `index.html`
 
-The implementation is intentionally presentational. It changes structure, copy, status rendering, and visual hierarchy, but not the rebalancer’s return shape or semantics.
+The initial implementation was presentational. The current UI also consumes the rebalancer's `matching` return block for the AP Match summary.
 
 ---
 
 ## Out of Scope
 
 - Export actions such as copy/download trade lists
-- Additional analytics beyond the current trade summary
+- Additional analytics beyond AP Match and the current trade summary
 - UI persistence for coverage, tolerance, or cash adjustment
 - Any change to the Finnhub integration or rebalance engine

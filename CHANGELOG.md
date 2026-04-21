@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-04-21 — AP matching indicator
+
+Rebalance results now show how closely the portfolio matches the active AP model:
+
+- Added an **AP Match** metric showing current match and projected post-rebalance match.
+- Matching is scored by market-value allocation overlap against the coverage-filtered, re-normalized AP model.
+- Hovering or focusing the AP Match metric shows the largest current gaps, labeled as underweight, overweight, or outside model.
+- The rebalancer now returns a `matching` block alongside the existing trade summary fields.
+
+---
+
 ## 2026-04-14 — Minimal UI redesign
 
 The app was redesigned for a lighter, more condensed feel:

@@ -39,11 +39,13 @@ Defines the contract for price lookups: `getPrices(tickers: string[]) → Promis
 - Swapping providers requires only implementing the same interface — no other code changes.
 
 **Rebalancer**
-Pure function. Signature: `rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0)`. Takes the AP model, coverage threshold, prices map, user holdings, and an optional tolerance percentage; returns `{ trades, droppedCount, skippedCount, totalValue, deployedValue }`. All price validation and halting occurs before this function is called (see Error Handling).
+Pure function. Signature: `rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0, cashAdjustment = 0)`. Takes the AP model, coverage threshold, prices map, user holdings, optional tolerance percentage, and optional signed cash adjustment; returns `{ trades, droppedCount, skippedCount, totalValue, deployedValue, matching }`. All price validation and halting occurs before this function is called (see Error Handling).
 
 Each trade object has the shape `{ ticker, action, subtype, shares, estValue }`:
 - `action`: `'BUY'` or `'SELL'`
 - `subtype`: one of `'open'` (BUY into a stock not currently held), `'add'` (BUY adding to an existing position), `'trim'` (SELL reducing an in-model position to target), or `'close'` (SELL fully exiting an out-of-model stock)
+
+The `matching` object has the shape `{ current, after }`. Each snapshot contains `{ score, gaps }`, where `score` is a 0-100 market-value overlap score against the active AP model and `gaps` lists the largest underweight, overweight, or outside-model allocations.
 
 **UI Layer**
 Renders inputs and outputs, wires modules together, persists the API key in `localStorage`.
@@ -94,11 +96,11 @@ The `Winner` line is detected by exact string match and skipped.
 
 The app has two explicit states:
 
-**Pre-rebalance state**: AP paste and portfolio paste may be edited freely. The coverage slider live-updates which rows in the AP table are greyed out. The trade summary panel is empty.
+**Pre-rebalance state**: AP paste and portfolio paste may be edited freely. The coverage slider live-updates which rows in the AP table are greyed out. The rebalance plan panel is empty.
 
-**Post-rebalance state**: Entered when the Rebalance button is clicked and completes successfully. The trade summary is shown.
+**Post-rebalance state**: Entered when the Rebalance button is clicked and completes successfully. The rebalance plan is shown.
 
-Any of the following transitions return the app to the pre-rebalance state and clear the trade summary:
+Any of the following transitions return the app to the pre-rebalance state and clear the rebalance plan:
 - User moves the coverage slider
 - User edits the AP paste textarea and re-clicks Parse
 - User edits the portfolio paste textarea
@@ -130,7 +132,7 @@ Prices are fetched **concurrently** using `Promise.all`. For typical portfolio s
 Only if all prices are valid does execution proceed to Step 4.
 
 ### Step 4 — Compute total portfolio value
-`total_value = Σ (shares × current_price)` across **all** user holdings, including stocks that will be sold. This value is computed once and held **fixed** for all subsequent steps.
+`total_value = Σ (shares × current_price) + cashAdjustment` across **all** user holdings, including stocks that will be sold. This value is computed once, clamped to 0, and held **fixed** for all subsequent steps.
 
 ### Step 5 — Compute target shares (Largest Remainder Method)
 For each stock in the active model:
@@ -168,6 +170,19 @@ After computing all trades, filter out any where `|delta_shares| × current_pric
 
 **No iteration required.** Total portfolio value is fixed upfront; trades are a single-pass delta calculation.
 
+### Step 8 — Compute AP Match
+After final trades are available, compute two allocation-overlap snapshots:
+
+- `matching.current`: current holdings vs the active, re-normalized AP model
+- `matching.after`: holdings after applying generated trades vs the same AP model
+
+The score is:
+```
+AP Match = Σ min(actual_weight[ticker], model_weight[ticker])
+```
+
+Weights are market-value percentages of `total_value`. Positions outside the model, overweight positions, underweight positions, and whole-share cash remainder reduce the score. The returned `gaps` array contains the largest current mismatches, labeled `underweight`, `overweight`, or `outside_model`.
+
 ---
 
 ## Error Handling
@@ -181,7 +196,7 @@ After computing all trades, filter out any where `|delta_shares| × current_pric
 - Rate limit (HTTP 429): show error banner "Rate limit exceeded — wait a moment and try again"; halt.
 - Other HTTP errors: show error banner with the status code; halt.
 
-In all error cases the trade summary panel is cleared and replaced with the error message. The app returns to pre-rebalance state.
+In all error cases the rebalance plan panel is cleared and replaced with the error message. The app returns to pre-rebalance state.
 
 **"Rebalance" button enable condition**: enabled only when (a) AP model is successfully parsed, (b) portfolio is successfully parsed (all non-blank lines are valid), and (c) API key field is non-empty.
 
@@ -195,26 +210,29 @@ In all error cases the trade summary panel is cleared and replaced with the erro
   - Cumulative % values are static, computed at parse time from the post-dedup weight-sorted list
 - Coverage slider (1–100%, default 80%):
   - Live-updates greying of rows below the current cutoff; does not recompute Cumulative % values
-  - Moving the slider clears the trade summary (pre-rebalance state)
+  - Moving the slider clears the rebalance plan (pre-rebalance state)
 - Tolerance input (number, 0–10%, step 0.5, default 0%):
   - Shown alongside the coverage slider; hidden until AP model is parsed
-  - Changing the value clears the trade summary (pre-rebalance state)
+  - Changing the value clears the rebalance plan (pre-rebalance state)
 
 ### Middle — My Portfolio Panel
 - Textarea: paste current holdings CSV (live-validated on every keystroke)
 - API key input (password field, persisted in `localStorage`)
 - "Rebalance" button: enabled only when AP model is parsed, portfolio is valid, and API key is non-empty
 
-### Bottom — Trade Summary Panel
+### Bottom — Rebalance Plan Panel
 - Table: Ticker | Action | Shares | Est. Value
 - The "Shares" column always shows a positive integer; the "Action" column shows BUY or SELL with a subtype label below it: **Open** (new position), **Add** (adding to existing), **Trim** (reducing in-model position), **Close** (exiting out-of-model stock)
 - BUY rows (green) grouped above SELL rows (red), each group sorted by est. value descending
-- Footer rows: total buy value, total sell value
-- Status line:
+- Summary metrics:
+  - AP Match as `current -> after`
+  - Total buy value
+  - Total sell value
   - Total portfolio value (`total_value`)
-  - "X% of portfolio deployed" where X = `Σ(target_shares × price) / total_value × 100`, rounded to one decimal
-  - "N trade(s) under $1 omitted" if any were dropped (omitted if none)
-  - "N trade(s) within tolerance skipped" if any were skipped via tolerance filter (omitted if none)
+- AP Match hover/focus detail shows the largest current allocation gaps.
+- Notices:
+  - "N trade(s) under $1 omitted" if any were dropped
+  - "N trade(s) within tolerance skipped" if any were skipped via tolerance filter
 
 ### Styling
 - Plain HTML/CSS/JS, no frameworks

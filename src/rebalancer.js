@@ -90,6 +90,55 @@ function sumSelectedShares(selectedLots) {
   return sharesByTicker;
 }
 
+function buildMatchingSnapshot(holdings, prices, modelWeights, totalValue) {
+  if (totalValue <= 0) return { score: 0, gaps: [] };
+
+  const actualWeights = new Map();
+  for (const [ticker, shares] of Object.entries(holdings)) {
+    const value = shares * (prices[ticker] || 0);
+    if (value <= 0) continue;
+    actualWeights.set(ticker, (actualWeights.get(ticker) || 0) + (value / totalValue) * 100);
+  }
+
+  let score = 0;
+  const gaps = [];
+  const tickers = new Set([...modelWeights.keys(), ...actualWeights.keys()]);
+  for (const ticker of tickers) {
+    const modelWeight = modelWeights.get(ticker) || 0;
+    const actualWeight = actualWeights.get(ticker) || 0;
+    if (modelWeight > 0) {
+      score += Math.min(actualWeight, modelWeight);
+    }
+
+    const gapWeight = actualWeight - modelWeight;
+    if (Math.abs(gapWeight) < 0.005) continue;
+    gaps.push({
+      ticker,
+      modelWeight,
+      actualWeight,
+      gapWeight,
+      direction: modelWeight === 0 ? 'outside_model' : (gapWeight < 0 ? 'underweight' : 'overweight'),
+    });
+  }
+
+  gaps.sort((a, b) => Math.abs(b.gapWeight) - Math.abs(a.gapWeight));
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score * 10) / 10)),
+    gaps: gaps.slice(0, 5),
+  };
+}
+
+function applyTradesToHoldings(holdings, trades) {
+  const nextHoldings = { ...holdings };
+  for (const trade of trades) {
+    const multiplier = trade.action === 'BUY' ? 1 : -1;
+    nextHoldings[trade.ticker] = (nextHoldings[trade.ticker] || 0) + multiplier * trade.shares;
+    if (nextHoldings[trade.ticker] <= 0) delete nextHoldings[trade.ticker];
+  }
+  return nextHoldings;
+}
+
 function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent = 0, cashAdjustment = 0) {
   // Step 1: Sort by weight descending, filter to coverage threshold
   const sorted = [...apStocks].sort((a, b) => b.weight - a.weight);
@@ -110,6 +159,7 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
     ticker: s.ticker,
     normalizedWeight: (s.weight / selectedWeightSum) * 100,
   }));
+  const modelWeights = new Map(normalized.map(s => [s.ticker, s.normalizedWeight]));
 
   // Step 3: Total portfolio value (fixed; includes stocks to be sold)
   let totalValue = Object.entries(holdings).reduce((sum, [ticker, shares]) => {
@@ -119,7 +169,11 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
 
   // If totalValue is 0, no trades can be made
   if (totalValue === 0) {
-    return { trades: [], droppedCount: 0, skippedCount: 0, totalValue, deployedValue: 0 };
+    const emptyMatching = {
+      current: buildMatchingSnapshot(holdings, prices, modelWeights, totalValue),
+      after: buildMatchingSnapshot(holdings, prices, modelWeights, totalValue),
+    };
+    return { trades: [], droppedCount: 0, skippedCount: 0, totalValue, deployedValue: 0, matching: emptyMatching };
   }
 
   // Step 4: Largest remainder method — compute floor shares and remainders
@@ -254,8 +308,13 @@ function rebalance(apStocks, coveragePercent, prices, holdings, tolerancePercent
   const deployedValue = positions.reduce((sum, { ticker, price }) => {
     return sum + targetSharesMap.get(ticker) * price;
   }, 0);
+  const afterHoldings = applyTradesToHoldings(holdings, trades);
+  const matching = {
+    current: buildMatchingSnapshot(holdings, prices, modelWeights, totalValue),
+    after: buildMatchingSnapshot(afterHoldings, prices, modelWeights, totalValue),
+  };
 
-  return { trades, droppedCount, skippedCount, totalValue, deployedValue };
+  return { trades, droppedCount, skippedCount, totalValue, deployedValue, matching };
 }
 
 if (typeof module !== 'undefined') module.exports = { rebalance };

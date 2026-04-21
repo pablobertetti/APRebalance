@@ -128,7 +128,7 @@ Subtracting `cashAdjustment` from the deficit means:
 
 ## UI / Return Value
 
-No UI changes. No new parameters. No changes to the return signature `{ trades, droppedCount, skippedCount, totalValue, deployedValue }`.
+The cash-neutral optimizer itself adds no UI controls and no new parameters. The current rebalancer return signature is `{ trades, droppedCount, skippedCount, totalValue, deployedValue, matching }`; `matching` is computed after the final cash-neutral trade adjustments so the post-rebalance score reflects the actual proposed trades.
 
 A buy trade reduced to 0 shares will be counted in `droppedCount` by the existing sub-$1 filter. This is a minor cosmetic imprecision (the reason for dropping differs) accepted for now.
 

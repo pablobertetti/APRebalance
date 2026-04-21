@@ -11,6 +11,10 @@ function fmt(n) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+function fmtPct(n) {
+  return `${(Math.round(n * 10) / 10).toFixed(1)}%`;
+}
+
 function setStepState(stepId, variant, text) {
   const el = document.getElementById(stepId);
   if (!el) return;
@@ -244,10 +248,49 @@ function renderTradeRows(list, cls) {
   ).join('');
 }
 
-function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployedValue }) {
+function renderGapRows(gaps) {
+  if (!gaps || gaps.length === 0) {
+    return '<div class="match-gap-row">No material gaps.</div>';
+  }
+
+  const directionLabel = {
+    underweight: 'underweight',
+    overweight: 'overweight',
+    outside_model: 'outside model',
+  };
+
+  return gaps.map((gap) => {
+    const magnitude = Math.abs(gap.gapWeight).toFixed(1);
+    return `<div class="match-gap-row">
+      <span>${gap.ticker}</span>
+      <strong>${directionLabel[gap.direction] || 'off target'} ${magnitude} pp</strong>
+    </div>`;
+  }).join('');
+}
+
+function renderMatchingCard(matching) {
+  if (!matching) return '';
+
+  const current = matching.current?.score || 0;
+  const after = matching.after?.score || 0;
+  const delta = Math.round((after - current) * 10) / 10;
+  const deltaText = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp`;
+
+  return `<div class="metric-card match-card" tabindex="0" aria-label="AP Match ${fmtPct(current)} to ${fmtPct(after)}, ${deltaText}">
+    <div class="metric-label">AP Match</div>
+    <strong class="metric-value">${fmtPct(current)} <span class="metric-arrow">to</span> ${fmtPct(after)}</strong>
+    <div class="match-tooltip" role="tooltip">
+      <div class="match-tooltip-title">Top gaps now</div>
+      ${renderGapRows(matching.current?.gaps)}
+    </div>
+  </div>`;
+}
+
+function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployedValue, matching }) {
   if (trades.length === 0 && droppedCount === 0) {
     return `<div class="result-shell">
       <div class="result-summary">
+        ${renderMatchingCard(matching)}
         <div class="metric-card">
           <div class="metric-label">Buys</div>
           <strong class="metric-value green">${fmt(0)}</strong>
@@ -277,6 +320,7 @@ function renderTrades({ trades, droppedCount, skippedCount, totalValue, deployed
 
   return `<div class="result-shell">
     <div class="result-summary">
+      ${renderMatchingCard(matching)}
       <div class="metric-card">
         <div class="metric-label">Buys</div>
         <strong class="metric-value green">${fmt(totalBuy)}</strong>

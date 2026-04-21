@@ -29,7 +29,7 @@ The app is a single `index.html` that includes all JS inline. During development
 1. User pastes AP portfolio dump → `parseAPDump()` → `[{ticker, weight}]`
 2. User pastes holdings CSV → `parsePortfolio()` → `{ticker: shares}`
 3. Coverage slider filters AP stocks by cumulative weight threshold (measured against the **actual sum of AP weights**, not 100)
-4. `rebalance()` renormalizes selected weights to 100%, computes target shares via largest-remainder method, diffs against current holdings, then post-processes nearby whole-share trades to make net cash flow land as close as possible to `cashAdjustment` while staying close to the model → `{trades, droppedCount, skippedCount, totalValue, deployedValue}`
+4. `rebalance()` renormalizes selected weights to 100%, computes target shares via largest-remainder method, diffs against current holdings, post-processes nearby whole-share trades to make net cash flow land as close as possible to `cashAdjustment`, then scores current and post-trade AP allocation overlap → `{trades, droppedCount, skippedCount, totalValue, deployedValue, matching}`
 5. `FinnhubProvider.getPrices()` fetches live prices; Finnhub returns `c: 0` for unknown tickers (treated as not-found)
 
 **Key invariants:**
@@ -39,6 +39,8 @@ The app is a single `index.html` that includes all JS inline. During development
 - `totalValue` is fixed before computing trades (includes value of stocks to be sold)
 - With empty holdings (`totalValue = 0`), no trades are generated
 - Cash optimization starts from the computed target shares, then only explores nearby whole-share adjustments
+- `matching.current.score` and `matching.after.score` are 0-100 market-value overlap scores against the active re-normalized AP model
+- Matching gaps are current-state diagnostics only in the UI; they should identify the largest underweight, overweight, and outside-model allocations
 
 **Module responsibilities (`src/`):**
 - `ap-parser.js` — `parseAPDump(text)` — handles winner badge, dedup (summed weights), uppercase normalization

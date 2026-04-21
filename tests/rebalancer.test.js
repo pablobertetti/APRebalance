@@ -128,6 +128,57 @@ test('returns totalValue and deployedValue', () => {
   assert.strictEqual(deployedValue, 1000);
 });
 
+test('matching: identical portfolio scores 100', () => {
+  const ap = [{ ticker: 'A', weight: 6 }, { ticker: 'B', weight: 4 }];
+  const prices = { A: 60, B: 40 };
+  const holdings = { A: 10, B: 10 }; // $600 / $400 = 60% / 40%
+  const { matching } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(matching.current.score, 100);
+  assert.strictEqual(matching.after.score, 100);
+});
+
+test('matching: outside-model portfolio has zero current overlap and outside gap', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100, OUT: 100 };
+  const holdings = { OUT: 10 };
+  const { matching } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(matching.current.score, 0);
+  const outside = matching.current.gaps.find(g => g.ticker === 'OUT');
+  assert.ok(outside, 'outside-model holding should be listed as a gap');
+  assert.strictEqual(outside.direction, 'outside_model');
+});
+
+test('matching: partial overlap captures underweight and overweight gaps', () => {
+  const ap = [{ ticker: 'A', weight: 6 }, { ticker: 'B', weight: 4 }];
+  const prices = { A: 100, B: 100 };
+  const holdings = { A: 5, B: 5 }; // 50% / 50% vs 60% / 40%
+  const { matching } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(matching.current.score, 90);
+  const gapA = matching.current.gaps.find(g => g.ticker === 'A');
+  const gapB = matching.current.gaps.find(g => g.ticker === 'B');
+  assert.strictEqual(gapA.direction, 'underweight');
+  assert.strictEqual(gapA.gapWeight, -10);
+  assert.strictEqual(gapB.direction, 'overweight');
+  assert.strictEqual(gapB.gapWeight, 10);
+});
+
+test('matching: after score improves after generated trades', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 100, OUT: 100 };
+  const holdings = { OUT: 10 };
+  const { matching } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(matching.current.score, 0);
+  assert.strictEqual(matching.after.score, 100);
+});
+
+test('matching: whole-share cash remainder reduces score', () => {
+  const ap = [{ ticker: 'A', weight: 10 }];
+  const prices = { A: 3, CASH: 10 };
+  const holdings = { CASH: 1 }; // totalValue $10, after buys 3 A shares = $9 deployed
+  const { matching } = rebalance(ap, 100, prices, holdings);
+  assert.strictEqual(matching.after.score, 90);
+});
+
 test('largest remainder assigns extra share to highest-remainder position', () => {
   // $1001 portfolio, 2 stocks 50/50, price $100 each
   // exact = 1001 * 0.5 / 100 = 5.005 each → floor=5, remainder=0.005 (tied)
