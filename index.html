@@ -606,10 +606,18 @@
 function parseAPDump(text) {
   const lines = text.split('\n').map(l => l.trim());
 
-  // Find and skip header line (first line starting with "Company")
+  // Find header line starting with "Company"
   let i = 0;
   while (i < lines.length && !lines[i].startsWith('Company')) i++;
   i++; // skip header
+
+  // SA now repeats column headers twice before data. Advance until we find
+  // two consecutive identical non-empty lines — that's the company-name pair
+  // that opens the first stock block (works with both old and new formats).
+  while (i + 1 < lines.length) {
+    if (lines[i] && lines[i] === lines[i + 1]) break;
+    i++;
+  }
 
   const stockMap = {};
 
